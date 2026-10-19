@@ -92,11 +92,13 @@ type Message = {
   form_sender: string; // inbound email: the trusted contact form address it came through (from_email is then the visitor), else ""
   received_at: string; // inbound email: the address of ours it was written to (its mailbox's address or an alias, lowercased; contracts/teams.md "Routing"), else ""
   // reply_to, auth_failed, form_sender and received_at are for agents: the widget and public events always carry "", false, "" and "".
+  thread_id: string | null; // the third-party thread a note belongs to ("Threads"), else null; public views always carry null
   created_at: string;
 };
 type Attachment = { id: string; filename: string; content_type: string; size_bytes: number; inline: boolean; url: string };
 type Activity = { id: string; ticket_id: string; actor: { type: string; user: UserRef | null }; type: string; data: Record<string, unknown>; created_at: string };
-// activity types: status_changed{from,to, reason?: "sender_unverified", message_id?} (with a reason, from equals to: a reply that failed sender checks left the status where it was, actor "system") priority_changed{from,to} severity_changed{from: Severity | null, to: Severity | null} assigned{from,to,via?: "round_robin"|"load_balanced"|"triage"} (actor "system", or "ai" for via "triage") team_changed{from,to,via: "agent"|"automation"|"api"|"triage"|..., mailbox_from?, mailbox_to? /* the reply address switched with the team */} brand_changed{from,to} mailbox_changed{from,to} /* the reply address */ tagged{tag} untagged{tag} sla_breached{kind} merged{into, into_number /* null when the target is in another, private team */} csat_received{score} linked{link_id,url,title,provider} unlinked{url,title,provider}
+// activity types: status_changed{from,to, reason?: "sender_unverified" | "thread_replied", message_id?} (with "sender_unverified", from equals to: a reply that failed sender checks left the status where it was, actor "system"; "thread_replied": an answer in a third-party thread opened a pending or on-hold ticket, actor "system") priority_changed{from,to} severity_changed{from: Severity | null, to: Severity | null} assigned{from,to,via?: "round_robin"|"load_balanced"|"triage"} (actor "system", or "ai" for via "triage") team_changed{from,to,via: "agent"|"automation"|"api"|"triage"|..., mailbox_from?, mailbox_to? /* the reply address switched with the team */} brand_changed{from,to} mailbox_changed{from,to} /* the reply address */ tagged{tag} untagged{tag} sla_breached{kind} merged{into, into_number /* null when the target is in another, private team */} csat_received{score} linked{link_id,url,title,provider} unlinked{url,title,provider}
+// thread_started{thread_id, subject, to} thread_closed{thread_id, subject} thread_reopened{thread_id, subject} ("Threads")
 // field_changed{key, name, from, to} (one per custom field; from/to are FieldValue | null)
 // AI (actor.type "ai", contracts/ai.md): ai_triaged{category,sentiment,language,priority,severity,via,model?,engine?}; AI changes carry {via, model?: "jev", confidence?: number} ai_answered{message_id,sources,tools} ai_action{action_id,tool,status} ai_handoff (actor "ai" or "contact")
 
@@ -187,7 +189,7 @@ type ApiKey = { id: string; name: string; prefix: string; scopes: string[]; last
 type Webhook = { id: string; url: string; description: string; events: string[]; enabled: boolean; created_at: string };
 type WebhookDelivery = { id: string; event_id: string; event_type: string; status: "pending" | "succeeded" | "failed"; attempts: number; response_code: number | null; duration_ms: number | null; created_at: string };
 type AuditLog = { id: string; actor: { type: "user" | "api_key" | "system"; user: UserRef | null; api_key_id: string | null }; action: string; entity_type: string; entity_id: string | null; data: Record<string, unknown>; ip: string; created_at: string };
-type Notification = { id: string; type: "assigned" | "mentioned" | "customer_replied" | "sla_breached" | "ai_handoff" | "ai_cap_reached" | "ai_balance_low" | "ai_balance_out" | "auto_recharge_failed" | "ai_key_failed" | "team_joined" /* data {team_id, team: {id, name, private}, user: {id, name}, by}: an admin joined a team you lead (a private one to see its tickets) */ | "import_finished" /* data contracts/imports.md: a history import you started completed, failed or needs new credentials */ | "collab_assigned" | "collab_mention" /* Collab conversations, contracts/collab.md "Notifications" */; ticket: { id: string; number: number; subject: string } | null; data: Record<string, unknown>; read_at: string | null; created_at: string };
+type Notification = { id: string; type: "assigned" | "mentioned" | "customer_replied" | "thread_replied" /* data {message_id, thread_id, subject, preview, from: {name, email}}: someone outside the team answered a third-party thread on a ticket assigned to you */ | "sla_breached" | "ai_handoff" | "ai_cap_reached" | "ai_balance_low" | "ai_balance_out" | "auto_recharge_failed" | "ai_key_failed" | "team_joined" /* data {team_id, team: {id, name, private}, user: {id, name}, by}: an admin joined a team you lead (a private one to see its tickets) */ | "import_finished" /* data contracts/imports.md: a history import you started completed, failed or needs new credentials */ | "collab_assigned" | "collab_mention" /* Collab conversations, contracts/collab.md "Notifications" */; ticket: { id: string; number: number; subject: string } | null; data: Record<string, unknown>; read_at: string | null; created_at: string };
 type Device = { id: string; platform: "ios"; name: string; app_version: string; environment: "production" | "sandbox";
   muted_types: string[]; current: boolean /* bound to the caller's session */; created_at: string; last_push_at: string | null };
 // Notification preferences ("Notification preferences and emails" below). Channels per type, per workspace;
@@ -427,6 +429,10 @@ Each value is overridable: `NOTIFY_EMAIL_DELAY`, `NOTIFY_EMAIL_COOLDOWNS` (e.g. 
 | POST | `/v1/tickets/{id}/render` | agent+. `{body_html}` → `{body_html}`: filled for this ticket and sanitized like a reply (inserting saved replies) |
 | POST | `/v1/tickets/{id}/messages` | `{kind: "reply"\|"note", body_html, cc?, bcc?, attachment_ids?, status?: TicketStatus, mailbox_id?}` → `Message`. A reply's template variables are filled when it is created, with the caller as the agent (contracts/templates.md); notes are not. `mailbox_id` (replies only) sends from that address and makes it the ticket's reply address (same rules as PATCH). An email reply from a mailbox with `sending: "system_off"` is `422 mailbox_cannot_send` ("This mailbox has no way to send email yet. Connect Google or Microsoft, or add SMTP, in its settings.") and stores nothing; automations skip their email replies there, and the AI agent's answers wait as a suggested reply |
 | GET | `/v1/tickets/{id}/activities` | ascending |
+| GET | `/v1/tickets/{id}/threads` | viewer → `{data: Thread[]}`, oldest first ("Threads") |
+| POST | `/v1/tickets/{id}/threads` | `{to: string[] /* 1..20 */, cc?: string[], subject, body_html, attachment_ids?, mailbox_id?, include_history?: boolean, forward_attachment_ids?: string[]}` → 201 `{thread: Thread, message: Message}` |
+| POST | `/v1/tickets/{id}/threads/{threadId}/messages` | `{body_html, attachment_ids?}` → 201 `Message` |
+| PATCH | `/v1/tickets/{id}/threads/{threadId}` | `{status: "open"\|"closed"}` → `Thread` |
 | GET | `/v1/messages/{id}/original` | → `{full_html}` quoted history / raw view |
 | CRUD | `/v1/contacts`, `/v1/contacts/{id}` | list supports `q`, `company_id`, `tag`, `field.<key>`. Write bodies also take `tags?: string[]` (replaces), `add_tags?`, `remove_tags?` (names, as for tickets) and `fields?` (merged; null clears) |
 | GET | `/v1/contacts/{id}/tickets` | list |
@@ -461,6 +467,46 @@ Each value is overridable: `NOTIFY_EMAIL_DELAY`, `NOTIFY_EMAIL_COOLDOWNS` (e.g. 
 | GET | `/v1/reports/overview?from=&to=&team_id=&brand_id=` | → `{created, solved, open_now, first_response_p50_minutes, resolution_p50_minutes, csat_avg, csat_count, sla_breached, by_day: [{date, created, solved}], by_channel: {...}, by_severity: Record<Severity \| "none", number> /* tickets created in the range */, by_agent: [{user, solved, first_response_p50_minutes}], by_team: [{team_id: string \| null, created, solved, open_now, first_response_p50_minutes}], by_brand: [{brand_id, created, solved, open_now, first_response_p50_minutes}]}`. `team_id` (a team, or `none`) and `brand_id` narrow every figure. Private teams' tickets are counted, with no subjects or contacts |
 | POST | `/v1/attachments` | multipart `file` → `Attachment` (unattached, linked when sent). Only whoever uploaded it (that user, or that API key) may send it in `attachment_ids` (`422` otherwise) |
 | GET | `/v1/attachments/{id}` | → 302 to signed URL or streamed (`?token=` for img tags). A file on a ticket the caller may not see is `404` (contracts/teams.md "Visibility") |
+
+#### Threads
+
+A third-party thread is an email conversation on a ticket with someone outside the team, such as
+a supplier, a logistics partner or a payment provider, to ask what the team needs before it can
+answer the customer. The app calls it a side conversation. It stays internal to the ticket:
+
+```ts
+type Thread = { id: string; ticket_id: string; subject: string; to: string[]; cc: string[];
+  mailbox_id: string | null /* the address it is sent from; null once that mailbox is removed */;
+  status: "open" | "closed"; include_history: boolean; created_by: UserRef | null; message_count: number;
+  last_message_at: string; created_at: string; updated_at: string };
+```
+
+- Its messages are notes (`kind: "note"`) with `thread_id` set: outbound ones are the team's, sent by
+  email to the thread's `to` and `cc`; inbound ones are the answers. They are never shown or sent to
+  the customer, and they are not the conversation with them: no `last_message_at`, `message_count`,
+  first response, SLA, CSAT, waiting time or report counts them, and no automation, auto-reply or AI
+  answer runs on them.
+- The team's messages go out from the thread's `mailbox_id`, an address of the ticket's brand the
+  caller may send from (`403 reply_address_forbidden` otherwise; default the ticket's reply address,
+  then its brand's address for its team). They thread with the thread's own messages and carry the
+  thread's subject (`Re:` once answered), the address's signature and design, filled without the
+  customer's or the ticket's details (their `contact.*`, `company.*` and `ticket.*` variables stay
+  empty). Delivery is reported on the message as for replies.
+- Nothing of the customer's conversation goes along unless asked for when the thread starts:
+  `include_history` quotes the ticket's last 10 public replies (as the `templates` history, whatever
+  the design's history setting) under the first message only; `forward_attachment_ids` sends
+  attachments of the ticket's public replies along with it, as copies on the thread's message that
+  share the stored file. Notes, and other threads, never go. An id that is not an attachment of the
+  ticket's public replies is a `422`; attachments of one message are limited to 25 MB in all.
+- An inbound email that answers one of a thread's messages (`In-Reply-To` / `References`, or our
+  Message-ID format) lands in that thread, whoever sends it, as an inbound note with the email's
+  sender, recipients and attachments. The sender does not become a contact. A ticket that is
+  `pending` or `on_hold` opens again (`status_changed` with reason `thread_replied`) unless the email
+  failed sender checks; a solved or closed one keeps its status. The assignee gets a `thread_replied` notification.
+- A new message in a closed thread opens it again. Closing a thread only marks it done.
+- Merging a ticket moves its threads to the target with their messages.
+- Events: `thread.created` and `thread.updated` (contracts/events.md); the messages themselves are
+  `message.created` / `message.updated` like any note.
 
 #### Labels and custom fields
 

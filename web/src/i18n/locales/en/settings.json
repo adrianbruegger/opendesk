@@ -521,6 +521,10 @@
         "label": "Customer replies",
         "hint": "On tickets assigned to you"
       },
+      "thread_replied": {
+        "label": "Side conversation answers",
+        "hint": "Someone outside your team answers a side conversation on a ticket assigned to you"
+      },
       "sla_breached": {
         "label": "SLA breaches",
         "hint": "A ticket assigned to you misses a target"

@@ -46,6 +46,8 @@ function notificationText(n: Notification) {
       return `You were mentioned ${subject}`;
     case "customer_replied":
       return `New reply ${subject}`;
+    case "thread_replied":
+      return `New answer in a side conversation ${subject}`;
     case "sla_breached":
       return `SLA breached ${subject}`;
     case "ai_handoff":
@@ -80,6 +82,7 @@ const billingNoticeBody: Partial<Record<Notification["type"], string>> = {
 // Everyday sounds (lib/alertSound.ts); live chat has its own alarm in useWaitingAlerts.
 const notificationSound: Partial<Record<Notification["type"], AlertSound>> = {
   customer_replied: "reply",
+  thread_replied: "reply",
   assigned: "assigned",
   mentioned: "assigned",
   sla_breached: "assigned",
