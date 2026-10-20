@@ -402,8 +402,9 @@ export const api = {
     /** The ticket's template values with me as the agent, and the signature my reply from `mailbox_id` carries. */
     variables: (id: string, mailboxId?: string | null) =>
       http.get<T.TicketVariables>(`/v1/tickets/${id}/variables`, { query: mailboxId ? { mailbox_id: mailboxId } : undefined }),
-    /** Fills a saved reply for this ticket. */
-    render: (id: string, body_html: string) => http.post<{ body_html: string }>(`/v1/tickets/${id}/render`, { body_html }),
+    /** Fills a saved reply for this ticket; `thread` fills it for a side conversation, without the customer's or the ticket's details. */
+    render: (id: string, body_html: string, thread?: boolean) =>
+      http.post<{ body_html: string }>(`/v1/tickets/${id}/render`, { body_html, thread: thread || undefined }),
     links: (id: string) => http.get<{ data: T.TicketLink[] }>(`/v1/tickets/${id}/links`),
     addLink: (id: string, b: { url: string; title?: string; integration_id?: string }) => http.create<T.TicketLink>(`/v1/tickets/${id}/links`, b),
     removeLink: (id: string, linkId: string) => http.del(`/v1/tickets/${id}/links/${linkId}`),

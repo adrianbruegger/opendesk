@@ -300,17 +300,16 @@ export const Composer = forwardRef<ComposerHandle, { ticket: Ticket; disabled?: 
   tRef.current = t;
 
   // Saved replies go in filled for this ticket, so the agent reads real words; notes are never filled.
+  // In a side conversation the server fills them without the customer's or the ticket's details.
   // A reply that can't be filled goes in as written (the server fills it on send).
   const [filling, setFilling] = useState(0);
   const insertSavedReply = useCallback((html: string, clear?: () => void) => {
     clear?.();
-    // A side conversation carries nothing of the customer's: their {{ }} fields come out.
-    if (modeRef.current === "thread") return editor.current?.insertHtml(html.replace(/\{\{[^{}]*\}\}/g, ""));
-    if (modeRef.current !== "reply") return editor.current?.insertHtml(html);
+    if (modeRef.current === "note") return editor.current?.insertHtml(html);
     const id = ticketRef.current;
     setFilling((n) => n + 1);
     api.tickets
-      .render(id, html)
+      .render(id, html, modeRef.current === "thread")
       .then((r) => r.body_html, () => html)
       .then((out) => {
         // Another ticket opened meanwhile: this one's draft is not the place.
