@@ -644,15 +644,15 @@ export const Composer = forwardRef<ComposerHandle, { ticket: Ticket; disabled?: 
                 transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
                 className="overflow-hidden"
               >
-                <EmailChips label="Cc" values={draft.cc} onChange={(cc) => setDraft({ cc })} />
-                <EmailChips label="Bcc" values={draft.bcc} onChange={(bcc) => setDraft({ bcc })} />
+                <EmailChips label={t("composer.cc")} values={draft.cc} onChange={(cc) => setDraft({ cc })} />
+                <EmailChips label={t("composer.bcc")} values={draft.bcc} onChange={(bcc) => setDraft({ bcc })} />
               </motion.div>
             )}
           </AnimatePresence>
           {threadMode && !thread && (
             <div>
               <EmailChips wide label={t("composer.to")} values={draft.threadTo} onChange={(threadTo) => setDraft({ threadTo })} />
-              <EmailChips wide label="Cc" values={draft.threadCc} onChange={(threadCc) => setDraft({ threadCc })} />
+              <EmailChips wide label={t("composer.cc")} values={draft.threadCc} onChange={(threadCc) => setDraft({ threadCc })} />
               <div className="flex h-8 items-center gap-2 border-b border-line-soft px-3">
                 <span className="w-12 shrink-0 text-xs text-fg-3">{t("composer.subject")}</span>
                 <input
@@ -692,7 +692,7 @@ export const Composer = forwardRef<ComposerHandle, { ticket: Ticket; disabled?: 
               onKeyDown={onKeyDown}
               editable={!disabled && !ai.busy}
               contentClassName={cn("max-h-[40vh] transition-[min-height] duration-200 ease-out motion-reduce:transition-none", open ? "min-h-[96px]" : "min-h-[44px]")}
-              ariaLabel={note ? "Note" : threadMode ? "Thread" : "Reply"}
+              ariaLabel={note ? t("composer.note") : threadMode ? t("composer.thread") : t("composer.reply")}
               toolbarEnd={
                 <>
                   {/* Ollie writes from the ticket, so it stays out of what goes to a third party. */}

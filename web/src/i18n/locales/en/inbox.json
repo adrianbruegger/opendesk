@@ -417,6 +417,8 @@
     "theCustomer": "the customer",
     "noteHint": "Only your team sees notes. Type @ to mention someone.",
     "ccBcc": "Cc / Bcc",
+    "cc": "Cc",
+    "bcc": "Bcc",
     "replyPlaceholder": "Write a reply. Type / for saved replies, {{braces}} for this ticket's details.",
     "notePlaceholder": "Write a note for your team",
     "attach": "Attach files",
