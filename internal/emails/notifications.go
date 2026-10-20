@@ -612,7 +612,7 @@ func toneOf(n Note) string {
 		return "#3B82F6"
 	case "mentioned":
 		return "#6366F1"
-	case "customer_replied", "thread_replied":
+	case "customer_replied":
 		return "#14B8A6"
 	case "sla_breached", "ai_balance_out", "auto_recharge_failed", "ai_key_failed":
 		return "#EF4444"
@@ -620,7 +620,7 @@ func toneOf(n Note) string {
 		return "#8B5CF6"
 	case "ai_balance_low":
 		return "#F59E0B"
-	case "team_joined":
+	case "team_joined", "thread_replied":
 		return "#06B6D4"
 	case "collab_assigned":
 		return "#3B82F6"
