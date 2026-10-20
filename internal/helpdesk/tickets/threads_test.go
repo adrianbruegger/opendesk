@@ -2,6 +2,8 @@ package tickets_test
 
 import (
 	"slices"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/jackc/pgx/v5"
@@ -164,6 +166,22 @@ func TestThreadForwardsHistoryAndAttachments(t *testing.T) {
 	other := createTicket(t, e, ws, map[string]any{"kind": "note"})
 	e.Do("POST", "/v1/tickets/"+other.ID.String()+"/threads", agent, body(map[string]any{"forward_attachment_ids": []string{public.ID.String()}})).Want(t, 422)
 
+	// Nor is a file of mail that failed its sender checks, which the timeline holds back.
+	spoofed := upload("new-bank-details.pdf")
+	if err := e.D.DB.Tx(e.Ctx, func(tx pgx.Tx) error {
+		m, err := domain.AddMessage(e.Ctx, tx, e.D.Jobs, domain.NewMessage{WorkspaceID: ws.ID, TicketID: tk.ID, Kind: "reply", Direction: "inbound",
+			AuthorType: "contact", BodyHTML: "<p>Our new bank details.</p>", BodyText: "Our new bank details.",
+			FromEmail: "carla@customer.test", FromName: "Carla", AuthFailed: true})
+		if err != nil {
+			return err
+		}
+		_, err = tx.Exec(e.Ctx, `UPDATE attachments SET message_id = $2 WHERE id = $1`, spoofed.ID, m.ID)
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	e.Do("POST", base, agent, body(map[string]any{"forward_attachment_ids": []string{spoofed.ID.String()}})).Want(t, 422)
+
 	var fwd threadCreated
 	e.Do("POST", base, agent, body(map[string]any{"include_history": true, "forward_attachment_ids": []string{public.ID.String()}})).
 		Want(t, 201).JSON(t, &fwd)
@@ -171,6 +189,14 @@ func TestThreadForwardsHistoryAndAttachments(t *testing.T) {
 		fwd.Message.Attachments[0].ID == public.ID {
 		t.Fatalf("forwarded thread %+v, attachments %+v", fwd.Thread, fwd.Message.Attachments)
 	}
+	// A saved reply's tags are filled without the customer's or the ticket's details.
+	var filled threadCreated
+	e.Do("POST", base, agent, body(map[string]any{"body_html": "<p>Hi from {{ workspace.name }} about {{ contact.name }} {{ ticket.number }}.</p>"})).
+		Want(t, 201).JSON(t, &filled)
+	if b := filled.Message.BodyHTML; strings.Contains(b, "{{") || strings.Contains(b, "Carla") || strings.Contains(b, strconv.FormatInt(tk.Number, 10)+".") {
+		t.Fatalf("filled body %q", b)
+	}
+
 	// The copy shares the stored file and leaves the customer's message as it was.
 	var shared, onReply int
 	e.Scalar(`SELECT count(*) FROM attachments WHERE storage_key = (SELECT storage_key FROM attachments WHERE id = $1)`, &shared, public.ID)

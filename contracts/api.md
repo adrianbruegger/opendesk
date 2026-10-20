@@ -491,13 +491,15 @@ type Thread = { id: string; ticket_id: string; subject: string; to: string[]; cc
   then its brand's address for its team). They thread with the thread's own messages and carry the
   thread's subject (`Re:` once answered), the address's signature and design, filled without the
   customer's or the ticket's details (their `contact.*`, `company.*` and `ticket.*` variables stay
-  empty). Delivery is reported on the message as for replies.
+  empty). The message's own tags (a saved reply's) are filled the same way when it is written.
+  Delivery is reported on the message as for replies.
 - Nothing of the customer's conversation goes along unless asked for when the thread starts:
   `include_history` quotes the ticket's last 10 public replies (as the `templates` history, whatever
   the design's history setting) under the first message only; `forward_attachment_ids` sends
   attachments of the ticket's public replies along with it, as copies on the thread's message that
-  share the stored file. Notes, and other threads, never go. An id that is not an attachment of the
-  ticket's public replies is a `422`; attachments of one message are limited to 25 MB in all.
+  share the stored file. Notes, other threads and inbound mail that failed sender checks never go.
+  An id that is not an attachment of the ticket's public replies, or is one of mail that failed
+  sender checks, is a `422`; attachments of one message are limited to 25 MB in all.
 - An inbound email that answers one of a thread's messages (`In-Reply-To` / `References`, or our
   Message-ID format) lands in that thread, whoever sends it, as an inbound note with the email's
   sender, recipients and attachments. The sender does not become a contact. A ticket that is
