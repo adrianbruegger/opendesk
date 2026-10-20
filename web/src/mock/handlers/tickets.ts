@@ -197,7 +197,10 @@ export function registerTickets() {
     // Files of the customer's conversation go along as copies (contracts/api.md "Threads").
     const forward = strArr(ctx.body.forward_attachment_ids) ?? [];
     const copies = forward.map((id) => {
-      const src = ctx.ws.messages.find((m) => m.ticket_id === t.id && m.kind === "reply" && m.attachments.some((a) => a.id === id))?.attachments.find((a) => a.id === id);
+      // Not the files of mail that failed its sender checks.
+      const src = ctx.ws.messages
+        .find((m) => m.ticket_id === t.id && m.kind === "reply" && !(m.direction === "inbound" && m.auth_failed) && m.attachments.some((a) => a.id === id))
+        ?.attachments.find((a) => a.id === id);
       if (!src) throw invalid("forward_attachment_ids must be attachments of this ticket's conversation with the customer");
       const copy = { ...src, id: uuid(), inline: false };
       db.attachments.push(copy);
