@@ -3,10 +3,10 @@
 // shows next to the uploads, where it can be taken out again.
 
 import { useQuery } from "@tanstack/react-query";
-import { Check, FileText, Quote, X } from "lucide-react";
-import { DropdownMenu as M } from "radix-ui";
+import { FileText, Quote, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { MenuCheckItem, MenuLabel } from "@/components/ui/menu";
 import type { Attachment, Message } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
 import { bytes } from "@/lib/format";
@@ -74,59 +74,35 @@ export function SideIncludeItems({ inc }: { inc: SideInclude }) {
   const toggle = (id: string) => inc.onChange({ threadFiles: inc.picked.includes(id) ? inc.picked.filter((x) => x !== id) : [...inc.picked, id] });
   return (
     <>
-      <div className="label-caps px-2 pb-1 pt-1.5">{t("side.include")}</div>
+      <MenuLabel>{t("side.include")}</MenuLabel>
       {inc.quoted > 0 && (
-        <IncludeItem
+        <MenuCheckItem
           checked={inc.history}
-          onToggle={() => inc.onChange({ threadHistory: !inc.history })}
+          onSelect={() => inc.onChange({ threadHistory: !inc.history })}
           icon={<Quote />}
-          label={t("side.conversation")}
-          meta={t("side.messages", { count: inc.quoted })}
-        />
+          hint={t("side.messages", { count: inc.quoted })}
+        >
+          {t("side.conversation")}
+        </MenuCheckItem>
       )}
       {inc.files.length > 1 && (
-        <IncludeItem
+        <MenuCheckItem
           checked={inc.picked.length === inc.files.length}
-          onToggle={() => inc.onChange({ threadFiles: inc.picked.length === inc.files.length ? [] : inc.files.map((a) => a.id) })}
+          onSelect={() => inc.onChange({ threadFiles: inc.picked.length === inc.files.length ? [] : inc.files.map((a) => a.id) })}
           icon={<FileText />}
-          label={t("side.allFiles")}
-          meta={String(inc.files.length)}
-        />
+          hint={inc.files.length}
+        >
+          {t("side.allFiles")}
+        </MenuCheckItem>
       )}
       <div className={cn("max-h-[184px] overflow-y-auto", inc.files.length > 1 && "pl-4")}>
         {inc.files.map((a) => (
-          <IncludeItem key={a.id} checked={inc.picked.includes(a.id)} onToggle={() => toggle(a.id)} icon={<FileText />} label={a.filename} meta={bytes(a.size_bytes)} mask />
+          <MenuCheckItem key={a.id} checked={inc.picked.includes(a.id)} onSelect={() => toggle(a.id)} icon={<FileText />} hint={bytes(a.size_bytes)}>
+            <span data-ph-mask>{a.filename}</span>
+          </MenuCheckItem>
         ))}
       </div>
     </>
-  );
-}
-
-function IncludeItem({ checked, onToggle, icon, label, meta, mask }: { checked: boolean; onToggle: () => void; icon: ReactNode; label: string; meta: string; mask?: boolean }) {
-  return (
-    <M.CheckboxItem
-      checked={checked}
-      onSelect={(e) => {
-        e.preventDefault();
-        onToggle();
-      }}
-      className="flex h-8 cursor-default items-center gap-2 rounded-md px-2 text-[12.5px] outline-none data-[highlighted]:bg-hover [&_svg]:size-3.5"
-    >
-      <span
-        aria-hidden
-        className={cn(
-          "flex size-[15px] shrink-0 items-center justify-center rounded-sm border transition-colors",
-          checked ? "border-inverse bg-inverse text-inverse-fg" : "border-line-strong bg-surface",
-        )}
-      >
-        {checked && <Check className="!size-2.5" strokeWidth={3.5} />}
-      </span>
-      <span className="shrink-0 text-fg-4">{icon}</span>
-      <span className="min-w-0 flex-1 truncate" data-ph-mask={mask || undefined}>
-        {label}
-      </span>
-      <span className="mono shrink-0 pl-2 text-[10.5px] text-fg-4">{meta}</span>
-    </M.CheckboxItem>
   );
 }
 
