@@ -357,9 +357,10 @@ export const Composer = forwardRef<ComposerHandle, { ticket: Ticket; disabled?: 
   );
   const retries = useRef(new Map<string, SendMessageBody>());
   const ai = useComposerAi(editor, ticket, mode === "reply" ? "reply" : "note");
-  /** Ollie drafts a reply; false when it can't here (AI off, or the composer is disabled). */
+  /** Ollie drafts a reply; false when it can't here (AI off, the composer is disabled, or a side
+   * conversation is being written, where a draft could carry the customer's details). */
   const draftReply = () => {
-    if (!ai.available || disabled) return false;
+    if (!ai.available || disabled || mode === "thread") return false;
     if (mode !== "reply") setDraft({ mode: "reply" });
     ai.draft();
     return true;
@@ -695,7 +696,8 @@ export const Composer = forwardRef<ComposerHandle, { ticket: Ticket; disabled?: 
               ariaLabel={note ? "Note" : threadMode ? "Thread" : "Reply"}
               toolbarEnd={
                 <>
-                  <ComposerAiMenu ai={ai} hasDraft={!!draft.html} disabled={disabled} />
+                  {/* Ollie writes from the ticket, so it stays out of what goes to a third party. */}
+                  {!threadMode && <ComposerAiMenu ai={ai} hasDraft={!!draft.html} disabled={disabled} />}
                   <input ref={fileInput} type="file" multiple hidden onChange={(e) => e.target.files && upload(e.target.files)} />
                   <Tooltip content={t("composer.attach")}>
                     <button
@@ -742,8 +744,8 @@ export const Composer = forwardRef<ComposerHandle, { ticket: Ticket; disabled?: 
               }
             />
           </div>
-          <ComposerSources ai={ai} />
-          <ComposerAiStatus ai={ai} />
+          {!threadMode && <ComposerSources ai={ai} />}
+          {!threadMode && <ComposerAiStatus ai={ai} />}
           {(uploads.length > 0 || (starting && (include.history || include.picked.length > 0))) && (
             <div className="flex flex-wrap gap-1.5 px-3 pb-2.5">
               {starting && <SideIncludedChips inc={include} />}
