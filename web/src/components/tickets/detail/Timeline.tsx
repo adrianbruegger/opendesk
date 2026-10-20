@@ -3,6 +3,8 @@ import { AlarmClock, Hand, ShieldAlert, Sparkles, ArrowRightLeft, CircleDot, Git
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
+import { useReducedMotion } from "motion/react";
+import { create } from "zustand";
 import type { Activity, Mailbox, Member, Message, Priority, Tag, Team, Thread, TicketStatus, UserRef } from "@/lib/api/types";
 import { dayLabel, fullDate, relShort, shortDate } from "@/lib/format";
 import { q } from "@/lib/queries";
@@ -21,6 +23,14 @@ import { isAIActor, OllieAvatar, useAssistantName } from "../ollie";
 import { fieldText, useDisplay, useTicketFields, type CustomField } from "../fields";
 
 type Item = { kind: "message"; at: string; m: Message } | { kind: "activity"; at: string; a: Activity };
+
+/** The message the timeline brings into view and rings for a moment; `at` tells two asks for the same one apart. */
+const usePointedAt = create<{ id: string | null; at: number }>(() => ({ id: null, at: 0 }));
+
+/** Shows a message in the timeline (a side conversation in the sidebar points at its latest). */
+export function showInTimeline(messageId: string) {
+  usePointedAt.setState({ id: messageId, at: Date.now() });
+}
 
 /** A user in activity data: a UserRef, or a user id (resolved through the members list). */
 function ref(v: unknown, members: Member[] | undefined): UserRef | null {
@@ -374,6 +384,14 @@ export function Timeline({
 
   const scroller = useRef<HTMLDivElement>(null);
   const atBottom = useRef(true);
+  const reduced = useReducedMotion();
+  const pointed = usePointedAt();
+  useEffect(() => {
+    if (!pointed.id) return;
+    scroller.current?.querySelector(`[id="m-${pointed.id}"]`)?.scrollIntoView({ block: "center", behavior: reduced ? "auto" : "smooth" });
+    const id = setTimeout(() => usePointedAt.setState({ id: null }), 1400);
+    return () => clearTimeout(id);
+  }, [pointed, reduced]);
   const count = items.length;
   // Items present when the conversation first showed stay still; later ones rise in.
   const seen = useRef<Set<string> | null>(null);
@@ -456,6 +474,7 @@ export function Timeline({
                     <MessageItem
                       m={it.m}
                       onRetry={onRetry}
+                      highlight={pointed.id === it.m.id}
                       receivedAt={receivedAt}
                       thread={it.m.thread_id ? threadById.get(it.m.thread_id) : undefined}
                       threadActions={lastInThread.has(it.m.id) ? threadActions : undefined}

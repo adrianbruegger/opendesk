@@ -10,6 +10,7 @@ import { cn } from "@/lib/cn";
 import { relShort } from "@/lib/format";
 import { q } from "@/lib/queries";
 import { tone } from "@/lib/tones";
+import { showInTimeline } from "./Timeline";
 
 type State = "waiting" | "answered" | "closed";
 
@@ -27,14 +28,8 @@ export function SideConversations({ ticketId, canEdit, onStart }: { ticketId: st
   const { data: messages } = useQuery(q.messages(ticketId));
   if (!threads?.length) return null;
 
-  const open = (m: Message | undefined) => {
-    const el = m && document.getElementById(`m-${m.id}`);
-    if (!el) return;
-    el.scrollIntoView({ block: "center", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
-    // A short ring shows which message the row pointed at.
-    el.classList.add("shadow-[0_0_0_2px_var(--focus)]");
-    window.setTimeout(() => el.classList.remove("shadow-[0_0_0_2px_var(--focus)]"), 1400);
-  };
+  // The timeline scrolls to the message and rings it for a moment.
+  const open = (m: Message | undefined) => m && showInTimeline(m.id);
   // Open ones first, the most recent on top.
   const sorted = [...threads].sort((a, b) => (a.status === b.status ? b.last_message_at.localeCompare(a.last_message_at) : a.status === "open" ? -1 : 1));
 
