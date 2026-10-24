@@ -126,6 +126,15 @@ export function loadAgentCatalogs(lng: string = pickAgentLocale()): Promise<void
   return pending;
 }
 
+/**
+ * A label (a field's entity, a view's name, a rewrite mode) placed inside a
+ * sentence. English and French lowercase it; German keeps its capital, which
+ * its nouns need.
+ */
+export function inSentence(label: string): string {
+  return i18n.resolvedLanguage === "de" ? label : label.toLowerCase();
+}
+
 /** Public routes, which load only the namespaces they show. */
 export function isPublicPath(pathname: string): boolean {
   return /^\/(help|csat)(\/|$)/.test(pathname);
