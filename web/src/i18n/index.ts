@@ -7,9 +7,9 @@
 // itself loads only `common`, so a help center or CSAT visitor never downloads
 // the agent app's catalogs.
 //
-// The agent app ships English and French, following the browser's language. A
-// key without French falls back to English (fallbackLng), so a new English
-// string never shows a raw key. The customer-facing surfaces (help center, CSAT,
+// The agent app ships English, French and German (AGENT_LOCALES), following the
+// browser's language. A key a translation does not have yet falls back to
+// English (fallbackLng), so a new English string never shows a raw key. The customer-facing surfaces (help center, CSAT,
 // widget) ship every SUPPORTED language, picked from the visitor's browser with
 // the workspace default as the fallback (see pickLocale).
 
@@ -59,9 +59,14 @@ export function pickLocale(opts: { explicit?: string | null; browser?: readonly 
   return matchLocale(opts.explicit) ?? browser.map(matchLocale).find((x): x is Locale => !!x) ?? matchLocale(opts.workspaceDefault) ?? "en";
 }
 
-/** The agent app is translated into French; every other language gets English. */
-export function pickAgentLocale(browser?: readonly string[]): "en" | "fr" {
-  return pickLocale({ browser }) === "fr" ? "fr" : "en";
+/** The languages the agent app is translated into. */
+export const AGENT_LOCALES = ["en", "fr", "de"] as const;
+export type AgentLocale = (typeof AGENT_LOCALES)[number];
+
+/** The agent app's language from the browser's; a language it is not translated into gets English. */
+export function pickAgentLocale(browser?: readonly string[]): AgentLocale {
+  const lng = pickLocale({ browser });
+  return (AGENT_LOCALES as readonly string[]).includes(lng) ? (lng as AgentLocale) : "en";
 }
 
 const loaders = import.meta.glob<{ default: Record<string, unknown> }>(["./locales/*/*.json", "!./locales/en/*.json"]);
