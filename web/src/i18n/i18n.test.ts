@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AGENT_LOCALES, i18n, intlLocale, isPublicPath, loadAgentCatalogs, matchLocale, pickAgentLocale, pickLocale, resetLocale, RTL, setLocale, SUPPORTED } from "./index";
+import { AGENT_LOCALES, i18n, inSentence, intlLocale, isPublicPath, loadAgentCatalogs, matchLocale, pickAgentLocale, pickLocale, resetLocale, RTL, setLocale, SUPPORTED } from "./index";
 import { NAMESPACES } from "./resources";
 
 const files = import.meta.glob<Record<string, unknown>>("./locales/*/*.json", { eager: true, import: "default" });
@@ -173,6 +173,19 @@ describe("agent language", () => {
   });
 });
 
+describe("inSentence", () => {
+  afterEach(() => resetLocale());
+
+  it("lowercases a label inside a sentence, except in German, whose nouns keep their capital", async () => {
+    await i18n.changeLanguage("fr");
+    expect(inSentence("Contacts")).toBe("contacts");
+    await i18n.changeLanguage("de");
+    expect(inSentence("Kontakte")).toBe("Kontakte");
+    await i18n.changeLanguage("en");
+    expect(inSentence("Tickets")).toBe("tickets");
+  });
+});
+
 describe("catalogs", () => {
   it("ships a folder for every supported language", () => {
     const langs = new Set(Object.keys(files).map((k) => k.split("/")[2]));
@@ -217,7 +230,7 @@ describe("catalogs", () => {
         const get = (o: Record<string, unknown>, path: string): string => String(path.split(".").reduce<unknown>((x, k) => (x as Record<string, unknown>)?.[k], o));
         const vars = (t: string) => (t.match(/\{\{[^}]+\}\}/g) ?? []).map((v) => v.replace(/\s/g, "")).sort();
         const tags = (t: string) => (t.match(/<\/?[A-Za-z0-9]+\s*\/?>/g) ?? []).map((v) => v.replace(/\s/g, "")).sort();
-        const catKeys = flatten(fr);
+        const catKeys = flatten(cat);
         for (const k of catKeys) {
           const base = k.replace(PLURAL, "");
           const plural = PLURAL.test(k) && enPlurals.has(base);
