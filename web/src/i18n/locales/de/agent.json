@@ -42,8 +42,8 @@
     "what": "den KI-Agenten",
     "saved": "Agent-Einstellungen gespeichert",
     "saveError": "Agent-Einstellungen konnten nicht gespeichert werden",
-    "openPlayground": "Playground öffnen",
-    "tryChanges": "Änderungen im Playground testen",
+    "openPlayground": "Testbereich öffnen",
+    "tryChanges": "Änderungen im Testbereich testen",
     "enable": "Agent Chats beantworten lassen",
     "enableHint": "Er antwortet Besuchern im Chat-Widget, nutzt deine Tools und dein Wissen und übergibt an dein Team, wenn es nötig ist. Antworten sind als KI gekennzeichnet.",
     "identity": "Identität",
@@ -91,7 +91,7 @@
     "errorBody": "Prüfe deine Verbindung und versuch es erneut.",
     "empty": "Keine Agent-Unterhaltungen in diesem Zeitraum",
     "emptyBody": "Wenn der Agent Besuchern im Chat-Widget antwortet, erscheinen hier seine Unterhaltungen, Übergaben und Bewertungen.",
-    "tryPlayground": "Im Playground ausprobieren",
+    "tryPlayground": "Im Testbereich ausprobieren",
     "setUp": "Verhalten einrichten",
     "conversations": "Unterhaltungen",
     "replies_one": "{{n}} Antwort",
@@ -413,10 +413,10 @@
     "toolsAfterConnectShort": "Nach Anmeldung"
   },
   "playground": {
-    "title": "Playground",
+    "title": "Testbereich",
     "description": "Chatte mit dem Agenten wie ein Besucher. Nichts hier erreicht einen Kunden oder erstellt ein Ticket.",
-    "what": "den Agent-Playground",
-    "chat": "Playground-Chat",
+    "what": "den Testbereich des Agenten",
+    "chat": "Testbereich-Chat",
     "reset": "Neu beginnen",
     "spent": "{{cost}} ausgegeben",
     "spentHint": "KI-Nutzung in dieser Sitzung",
@@ -432,7 +432,7 @@
     "stopped": "Gestoppt",
     "error": "Der Agent konnte nicht antworten",
     "actionPending": "Würde um Bestätigung bitten",
-    "actionNote": "Im Playground nicht ausgeführt",
+    "actionNote": "Im Testbereich nicht ausgeführt",
     "handoff": "Hier an dein Team übergeben",
     "replyCost": "{{cost}}",
     "draftTitle": "Nutzt deine ungespeicherten Änderungen",
@@ -440,7 +440,7 @@
     "draftBack": "Zurück zu Verhalten",
     "overrides": "Andere Einstellungen testen",
     "answerAs": "Antworten als",
-    "overridesHint": "Änderungen hier wirken sich nur auf diesen Playground aus.",
+    "overridesHint": "Änderungen hier wirken sich nur auf diesen Testbereich aus.",
     "overridesLink": "Echte Einstellungen ändern",
     "useSaved": "Gespeicherte nutzen",
     "visitor": "Besucher",
@@ -449,6 +449,6 @@
     "emailInvalid": "Gib eine gültige E-Mail ein",
     "verified": "Bestätigte Identität",
     "verifiedHint": "Als hätte deine Website den Besucher angemeldet. Schaltet Tools nur für bestätigte Besucher frei.",
-    "note": "Jede Antwort kostet etwa {{cost}} auf dem Modell des Agenten und zählt als Playground-Nutzung. Längere Unterhaltungen und teurere Modelle kosten mehr."
+    "note": "Jede Antwort kostet etwa {{cost}} auf dem Modell des Agenten und zählt als Nutzung im Testbereich. Längere Unterhaltungen und teurere Modelle kosten mehr."
   }
 }

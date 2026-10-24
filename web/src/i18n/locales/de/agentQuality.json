@@ -18,7 +18,7 @@
   "expectations_other": "{{count}} Prüfungen",
   "newBadge": "Neu fehlgeschlagen",
   "noneInFilter": "Keine Tests hier.",
-  "note": "Jeder beantwortete oder bewertete Test kostet etwa {{cost}} auf dem Modell des Agenten, wie Antworten im Playground. Tools, die etwas ändern, laufen in Tests nie.",
+  "note": "Jeder beantwortete oder bewertete Test kostet etwa {{cost}} auf dem Modell des Agenten, wie Antworten im Testbereich. Tools, die etwas ändern, laufen in Tests nie.",
   "state": {
     "passed": "Bestanden",
     "failed": "Fehlgeschlagen",
@@ -55,8 +55,8 @@
   "empty": {
     "title": "Noch keine Tests",
     "description": "Ein Test ist die Frage eines Besuchers und das, was Ollies Antwort leisten muss. Führe deine Tests aus, bevor du neue Anweisungen speicherst, damit eine Korrektur an einer Stelle nichts anderes kaputt macht.",
-    "playground": "Playground öffnen",
-    "tipPlayground": "Speichere jede Playground-Unterhaltung als Test",
+    "playground": "Testbereich öffnen",
+    "tipPlayground": "Speichere jede Unterhaltung im Testbereich als Test",
     "tipImprove": "Auch beim Verbessern einer Antwort kannst du einen Test speichern"
   },
   "draft": {

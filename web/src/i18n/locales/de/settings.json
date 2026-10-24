@@ -368,7 +368,7 @@
   },
   "fields": {
     "reorderAria": "{{name}} umsortieren. Halte Alt gedrückt und verschiebe mit den Pfeiltasten.",
-    "title": "Benutzerdefinierte Felder",
+    "title": "Eigene Felder",
     "description": "Zusätzliche Angaben, die dein Team an Tickets, Kontakten und Unternehmen festhält, etwa Tarif, Bestellnummer oder Verlängerungsdatum.",
     "new": "Neues Feld",
     "listTitle": "{{entity}}-Felder",
