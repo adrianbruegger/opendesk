@@ -310,7 +310,8 @@
     "received_at": "Empfangsadresse",
     "team_id": "Team",
     "brand_id": "Marke",
-    "widget_id": "Chat-Widget"
+    "widget_id": "Chat-Widget",
+    "assignee_id": "Zuständig"
   },
   "ops": {
     "contains": "enthält",
@@ -564,7 +565,7 @@
     "after": {
       "section": "Nach der Triage",
       "label": "Nach der Triage zuweisen",
-      "hintMode": "Das Ticket wird dann mit deinem Modus {{mode}} zugewiesen.",
+      "hintMode": "Das Ticket wird dann im Modus „{{mode}}“ zugewiesen.",
       "hintNone": "Die Zuweisung ist aus, daher geht das Ticket an die Person mit den wenigsten offenen Tickets.",
       "link": "Zuweisungseinstellungen"
     },

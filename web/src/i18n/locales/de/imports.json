@@ -40,6 +40,10 @@
       "with": "Zugriffstoken",
       "blurb": "Unterhaltungen mit Notizen und Dateien, Kontakte, Unternehmen und Artikel."
     },
+    "front": {
+      "with": "API-Token",
+      "blurb": "Unterhaltungen aus jedem gemeinsamen Posteingang, mit Kommentaren, Dateien und Kontakten."
+    },
     "csv": {
       "with": "Jeder Helpdesk",
       "blurb": "Ein Export aus einem beliebigen anderen Helpdesk, eine Zeile pro Ticket oder pro Nachricht."
@@ -274,6 +278,7 @@
     "articles": "Hilfecenter-Artikel werden übernommen",
     "tickets": "Tickets werden übernommen",
     "changes": "Änderungen werden übernommen",
+    "threading": "Antworten werden ihren E-Mails zugeordnet: {{done}} von {{total}}",
     "undoing": "Was der Import gebracht hat, wird entfernt",
     "paused": "Pausiert. Es geht hier weiter, wenn du fortsetzt.",
     "waiting": "{{name}} hat uns gebeten, langsamer zu machen. Weiter in {{seconds}} s.",

@@ -427,6 +427,11 @@
       "lookup": "Schlägt nach",
       "asks": "Fragt zuerst",
       "toggle": "Ollie darf {{name}} nutzen",
+      "askFirst": "Zuerst fragen",
+      "askFirstFor": "Um Genehmigung bitten, bevor Ollie {{name}} nutzt",
+      "auto": "Läuft ohne Nachfrage",
+      "autoRun": "Läuft ohne Nachfrage",
+      "autoRunFor": "Ollie {{name}} ohne Genehmigung nutzen lassen",
       "more_one": "{{count}} weiteres anzeigen",
       "more_other": "{{count}} weitere anzeigen",
       "fewer": "Weniger anzeigen"

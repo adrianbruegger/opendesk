@@ -13,7 +13,8 @@
     "answer_email": "E-Mails beantworten",
     "playground": "Agent im Testbereich testen",
     "kb_draft": "Hilfeartikel entwerfen",
-    "assistant": "Nachrichten an den Assistenten"
+    "assistant": "Nachrichten an den Assistenten",
+    "assistant_peer": "Ollie fragt beim Ollie eines Teammitglieds nach"
   },
   "sentiment": {
     "positive": "Positiv",
@@ -51,7 +52,28 @@
     "assistant_section": "{{name}}",
     "assistant_section_hint": "{{name}} ist der Assistent in der Kopfzeile. Er arbeitet mit den Berechtigungen des jeweiligen Teammitglieds.",
     "assistant": "Teammitglieder {{name}} fragen lassen",
-    "assistant_hint": "Beantwortet Fragen zur Warteschlange, findet Tickets und bereitet Änderungen vor. Nichts ändert sich, bevor das Teammitglied zustimmt. Jede Nachricht wird vom KI-Guthaben abgebucht.",
+    "assistant_hint": "Beantwortet Fragen zur Warteschlange, findet Tickets und bereitet Änderungen vor. Nichts ändert sich, bevor das Teammitglied zustimmt, außer den Änderungen, die du unten ohne Nachfrage erlaubst. Jede Nachricht wird vom KI-Guthaben abgebucht.",
+    "assistant_peer": "{{name}}-Assistenten von Teammitgliedern dürfen sich gegenseitig fragen",
+    "assistant_peer_hint": "Mitglieder entscheiden selbst, ob ihr {{name}} antwortet, wer fragen darf und was er aus ihren E-Mails teilt. Standardmäßig aus.",
+    "auto_run": "Änderungen, die {{name}} ohne Nachfrage macht",
+    "auto_run_hint": "Standardmäßig aus. {{name}} macht die Änderungen, die du hier einschaltest, sobald er sich dafür entscheidet, mit den eigenen Berechtigungen des Teammitglieds, und markiert jede als ohne Nachfrage gemacht.",
+    "auto_run_always": "Antworten, Nachrichten an Personen außerhalb des Teams und Änderungen an anderen Einstellungen fragen immer zuerst, egal was du hier wählst.",
+    "auto_run_tools": {
+      "update_ticket": "Ticket aktualisieren",
+      "bulk_update_tickets": "Mehrere Tickets aktualisieren",
+      "add_note": "Interne Notiz hinzufügen",
+      "create_kb_draft": "Artikelentwurf speichern",
+      "create_view": "Persönliche Ansicht speichern",
+      "create_automation_draft": "Automatisierung speichern, ausgeschaltet"
+    },
+    "auto_run_tools_hint": {
+      "update_ticket": "Zuständige Person, Status, Priorität, Labels und Felder eines Tickets.",
+      "bulk_update_tickets": "Dieselbe Änderung an bis zu 50 Tickets auf einmal.",
+      "add_note": "Notizen sieht nur das Team.",
+      "create_kb_draft": "Entwürfe bleiben unveröffentlicht, bis jemand sie veröffentlicht.",
+      "create_view": "Wird für das Teammitglied gespeichert, das gefragt hat.",
+      "create_automation_draft": "Nur für Admins. Sie bleibt aus, bis jemand sie einschaltet."
+    },
     "automatic": "Automatisch",
     "automatic_hint": "Diese laufen, ohne dass jemand fragt, und werden jedes Mal vom KI-Guthaben abgebucht.",
     "auto_triage": "Triage für neue Tickets",

@@ -1,5 +1,6 @@
 {
   "titles": {
+    "everywhere": "Überall",
     "helpCenter": "Hilfecenter",
     "rateYourConversation": "Bewerte deine Unterhaltung",
     "logIn": "Anmelden",
@@ -41,6 +42,8 @@
     "profile": "Profil",
     "security": "Sicherheit",
     "notifications": "Benachrichtigungen",
+    "agentToAgent": "Agent-zu-Agent",
+    "workspaces": "Workspaces",
     "general": "Allgemein",
     "members": "Mitglieder",
     "teams": "Teams",
@@ -73,7 +76,7 @@
   },
   "folders": {
     "unassigned": "Nicht zugewiesen",
-    "mine": "Mir zugewiesen",
+    "mine": "Meine Tickets",
     "open": "Alle offenen",
     "pending": "Wartend",
     "solved": "Gelöst",
@@ -92,6 +95,8 @@
     "profile": "Profil",
     "security": "Sicherheit",
     "notifications": "Benachrichtigungen",
+    "agentToAgent": "Agent-zu-Agent",
+    "workspaces": "Workspaces",
     "general": "Allgemein",
     "members": "Mitglieder",
     "teams": "Teams",
@@ -153,7 +158,7 @@
     "aiKnowledge": "KI-Agent: Wissen",
     "aiTools": "KI-Agent: Tools",
     "aiPlayground": "KI-Agent: Testbereich",
-    "importHistory": "Verlauf aus Zendesk, Help Scout, Freshdesk, Intercom oder CSV importieren"
+    "importHistory": "Verlauf aus Zendesk, Help Scout, Freshdesk, Intercom, Front oder CSV importieren"
   },
   "shortcuts": {
     "general": "Allgemein",

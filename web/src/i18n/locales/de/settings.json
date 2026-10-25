@@ -274,6 +274,16 @@
       "light": "Hell",
       "dark": "Dunkel",
       "system": "System"
+    },
+    "clock": {
+      "title": "Uhrzeit",
+      "hint": "Gilt für dein Konto, in jedem Browser.",
+      "label": "Zeitformat",
+      "labelHint": "Für Uhrzeiten in der App und in deinen Benachrichtigungs-E-Mails. Automatisch folgt in der App der Sprache und Region deines Browsers und nutzt in E-Mails das 24-Stunden-Format.",
+      "auto": "Automatisch",
+      "h12": "12 Stunden (2:05 PM)",
+      "h24": "24 Stunden (14:05)",
+      "saved": "Zeitformat gespeichert"
     }
   },
   "saveBar": {
@@ -340,7 +350,13 @@
     "messageDeleteHint": "Eigene Notizen: Agenten löschen ihre eigenen internen Notizen. Alle Agenten: auch Notizen und Antworten aller Agenten. Eine gelöschte Nachricht bleibt als Markierung stehen. Admins können jede Nachricht löschen, gelöschte lesen und wiederherstellen und einem Agenten unter Mitglieder eine andere Regel geben.",
     "messageDeleteOff": "Aus",
     "messageDeleteOwn": "Eigene Notizen",
-    "messageDeleteAll": "Alle Agenten"
+    "messageDeleteAll": "Alle Agenten",
+    "collabReplies": "Aus dem eigenen Mailkonto antworten",
+    "collabRepliesHint": "Mitglieder können ein E-Mail-Ticket aus einem ihrer verbundenen E-Mail-Konten statt von der Adresse des Tickets beantworten, jeweils eine Antwort. Die Antworten des Kunden kommen trotzdem ins Ticket zurück. Jedes Postfach kann eigene Regeln festlegen.",
+    "collabReplyTo": "Wohin Antworten gehen",
+    "collabReplyToHint": "Die Antwortadresse einer solchen Antwort, außer das Mitglied wählt eine andere. Ihre Adresse: Antworten gehen an die Adresse, von der gesendet wurde, und kommen von dort ins Ticket zurück. Die Adresse des Tickets: Antworten gehen wie bei jeder E-Mail an die Adresse des Teams.",
+    "collabReplyToAddress": "Ihre Adresse",
+    "collabReplyToMailbox": "Die Adresse des Tickets"
   },
   "display": {
     "title": "Status und Prioritäten",
@@ -528,6 +544,11 @@
       "urgent": "Dringend",
       "urgentHint": "Kann früher gemailt werden, im Abstand von mindestens {{gap}}"
     },
+    "teams": {
+      "title": "Deine Teams",
+      "description": "Neue Tickets in einem Team und Antworten, die niemand übernommen hat. Dir zugewiesene Tickets und Erwähnungen erreichen dich immer.",
+      "switch": "Benachrichtigungen von {{team}}"
+    },
     "kinds": {
       "assigned": {
         "label": "Dir zugewiesen",
@@ -643,5 +664,57 @@
     "remove": "Signatur entfernen",
     "preview": "Vorschau",
     "none": "Keine Signatur"
+  },
+  "peer": {
+    "title": "Agent-zu-Agent",
+    "description": "Lass die {{name}}-Assistenten von Teammitgliedern deinen zu deinen E-Mails fragen, wenn sie etwas brauchen, das nur du sehen kannst.",
+    "enabled": "{{name}}-Assistenten von Teammitgliedern dürfen meinen fragen",
+    "enabledHint": "Dein {{name}} antwortet aus deinen eigenen E-Mail-Konten und folgt deinen Regeln. Sie bekommen eine Antwort, nie deine E-Mails.",
+    "offTitle": "Dein Workspace hat das nicht eingeschaltet",
+    "offHint": "Ein Admin kann es unter Einstellungen, KI erlauben.",
+    "offAdmin": "Erlaube es unter Einstellungen, KI, mit „{{name}}-Assistenten von Teammitgliedern dürfen sich gegenseitig fragen“. Jedes Mitglied entscheidet dann für seine eigenen E-Mails.",
+    "openAi": "KI-Einstellungen öffnen",
+    "unavailable": "Agent-zu-Agent ist nicht verfügbar",
+    "people": "Personen",
+    "peopleHint": "Wer deinen {{name}} fragen darf. Änderungen gelten ab der nächsten Frage.",
+    "shareWith": "Teilen mit",
+    "everyone": "Alle",
+    "everyoneHint": "Jedes Mitglied dieses Workspace.",
+    "chosen": "Ausgewählte Personen und Teams",
+    "chosenHint": "Nur die Personen und Teams, die du auswählst.",
+    "accounts": "Konten",
+    "accountsHint": "Auf welche deiner eigenen E-Mail-Konten dein {{name}} zugreifen darf. E-Mails, die andere mit dir teilen, werden nie verwendet.",
+    "useFrom": "Informationen verwenden aus",
+    "modesHint": "Wörtlich darf deine E-Mails zitieren. Nur Zusammenfassungen antwortet nur in eigenen Worten. Nichts lässt ein Konto außen vor.",
+    "allAccounts": "Alle Konten",
+    "chosenAccounts": "Ausgewählte Konten",
+    "modeFor": "Was {{account}} teilen darf",
+    "newAccounts": "Neue Konten",
+    "newAccountsHint": "Konten, die du später verbindest, starten mit dieser Einstellung.",
+    "noAccounts": "Keine eigenen E-Mail-Konten",
+    "noAccountsHint": "Verbinde eins unter Mailkonten und wähle dann hier, was es teilen darf.",
+    "connect": "Konto verbinden",
+    "mode": {
+      "verbatim": "Wörtlich",
+      "summary": "Nur Zusammenfassungen",
+      "none": "Nichts"
+    },
+    "rules": "Regeln fürs Teilen",
+    "rulesHint": "Dein {{name}} folgt diesen Regeln, wenn er antwortet. Er nutzt außerdem den gesunden Menschenverstand und behält Privates für sich.",
+    "rulesSuggestion": "Teile Termine, Entscheidungen und nächste Schritte. Teile nie Preise, Verträge, Persönliches oder etwas, das als vertraulich markiert ist.",
+    "useSuggestion": "Vorschlag verwenden",
+    "asks": "Letzte Fragen",
+    "asksHint": "Fragen, die Teammitglieder deinem {{name}} gestellt haben, und was er geantwortet hat. 90 Tage lang aufbewahrt.",
+    "noAsks": "Noch hat niemand gefragt",
+    "noAsksHint": "Wenn der {{name}} eines Teammitglieds deinen fragt, erscheinen Frage und Antwort hier.",
+    "showMore": "Mehr anzeigen",
+    "result": {
+      "answered_one": "Aus 1 Unterhaltung beantwortet",
+      "answered_other": "Aus {{count}} Unterhaltungen beantwortet",
+      "declined": "Abgelehnt",
+      "not_shared": "Nicht geteilt",
+      "failed": "Konnte nicht antworten"
+    },
+    "saveFailed": "Deine Agent-zu-Agent-Einstellungen konnten nicht gespeichert werden."
   }
 }

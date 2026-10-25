@@ -60,7 +60,18 @@
     "field": "Feld",
     "before": "Jetzt",
     "after": "Danach",
-    "of": "{{shown}} von {{total}} Treffern"
+    "of": "{{shown}} von {{total}} Treffern",
+    "moreFields_one": "1 weiteres Feld",
+    "moreFields_other": "{{count}} weitere Felder",
+    "clipped": "Einige Werte sind gekürzt",
+    "showArguments": "Alle Argumente anzeigen",
+    "hideArguments": "Argumente ausblenden",
+    "arguments": "Alles, was diese Änderung sendet"
+  },
+  "step": {
+    "auto": "Ohne Nachfrage ausgeführt",
+    "showRan": "Anzeigen, was ausgeführt wurde",
+    "hideRan": "Ausblenden, was ausgeführt wurde"
   },
   "status": {
     "running": "Läuft",
@@ -70,6 +81,15 @@
     "approved": "Genehmigt",
     "denied": "Abgelehnt",
     "expired": "Übersprungen"
+  },
+  "peer": {
+    "asking": "Fragt {{assistant}} von {{name}}",
+    "asked": "Hat {{assistant}} von {{name}} gefragt",
+    "answered_one": "hat aus 1 Unterhaltung geantwortet",
+    "answered_other": "hat aus {{count}} Unterhaltungen geantwortet",
+    "declined": "abgelehnt",
+    "not_shared": "nicht mit dir geteilt",
+    "failed": "konnte nicht antworten"
   },
   "tip": {
     "act": "{{name}} fragen",

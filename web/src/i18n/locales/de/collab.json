@@ -231,7 +231,9 @@
     "draftTo": "An {{who}}",
     "draftNoRecipients": "Noch keine Empfänger",
     "toAlias": "An {{email}}",
-    "toAliasHint": "An diese Adresse geschrieben. Ihre E-Mails anzeigen"
+    "toAliasHint": "An diese Adresse geschrieben. Ihre E-Mails anzeigen",
+    "onTicket": "Im Ticket #{{number}}",
+    "ticketHint": "Aus einem Ticket beantwortet: {{subject}}. Ticket öffnen"
   },
   "composer": {
     "to": "An",
@@ -575,6 +577,12 @@
     "hide": "In der Seitenleiste ausblenden",
     "customize": "Seitenleiste anpassen",
     "more": "Optionen für {{name}}"
+  },
+  "address": {
+    "pillTip_one": "{{count}} weitere Adresse",
+    "pillTip_other": "{{count}} weitere Adressen",
+    "more_one": "und {{count}} weitere",
+    "more_other": "und {{count}} weitere"
   },
   "tabs": {
     "title": "Tabs anpassen",

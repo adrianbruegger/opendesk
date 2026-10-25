@@ -228,6 +228,7 @@
     "playground": "Testbereich des Agenten",
     "kb_draft": "Artikelentwürfe",
     "assistant": "Assistent",
+    "assistant_peer": "Beim Ollie eines Teammitglieds nachfragen",
     "other": "Sonstiges"
   },
   "dialog": {
