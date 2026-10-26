@@ -24,12 +24,18 @@ type tool struct {
 	Schema      map[string]any
 	// Scopes are all required for the tool to be offered.
 	Scopes []string
+	// Person: offered only to a connection that acts as a teammate (OAuth), never to an
+	// API key, for changes the API allows only to people (their own notes).
+	Person bool
 	// Hints for the client (MCP tool annotations).
 	ReadOnly, Destructive, Idempotent, OpenWorld bool
 	Run                                          func(ctx context.Context, c *caller, args json.RawMessage) (any, error)
 }
 
 func (t *tool) offered(p *auth.Principal) bool {
+	if t.Person && p.Kind != auth.KindUser {
+		return false
+	}
 	for _, s := range t.Scopes {
 		if !p.HasScope(s) {
 			return false
@@ -57,7 +63,7 @@ func (t *tool) mcpTool() *mcp.Tool {
 
 // catalog is every tool, in the order clients list them (contracts/agent.md).
 func catalog() []*tool {
-	return append(append(append(ticketTools(), contactTools()...), knowledgeTools()...), reportTools()...)
+	return append(append(append(append(ticketTools(), ticketWorkTools()...), contactTools()...), knowledgeTools()...), reportTools()...)
 }
 
 // --- results -------------------------------------------------------------------------
@@ -188,6 +194,14 @@ func arr(desc string, items map[string]any, maxItems int) map[string]any {
 
 func integer(desc string, lo, hi, def int) map[string]any {
 	return map[string]any{"type": "integer", "description": desc, "minimum": lo, "maximum": hi, "default": def}
+}
+
+func boolean(desc string) map[string]any {
+	return map[string]any{"type": "boolean", "description": desc}
+}
+
+func object(desc string) map[string]any {
+	return map[string]any{"type": "object", "description": desc, "additionalProperties": true}
 }
 
 var (

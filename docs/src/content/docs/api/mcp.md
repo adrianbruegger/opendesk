@@ -3,7 +3,7 @@ title: MCP server
 description: Connect Claude, ChatGPT, Cursor, VS Code or any MCP client to opendesk with a sign-in or an API key, and the tools it offers.
 ---
 
-opendesk is an [MCP](https://modelcontextprotocol.io) server. Connect an AI client such as Claude, ChatGPT, Cursor or VS Code and it can search and read tickets, reply, add notes, update and create tickets, look up contacts, search the knowledge base, draft articles and read reports.
+opendesk is an [MCP](https://modelcontextprotocol.io) server. Connect an AI client such as Claude, ChatGPT, Cursor or VS Code and it can search and read tickets, reply, add and edit notes, update, merge and create tickets, hold side conversations with people outside the team, read saved replies and a ticket's activity, look up and update contacts, search the knowledge base, draft articles and read reports.
 
 There are two ways to connect:
 
@@ -140,23 +140,33 @@ A tool is offered only when the key, or the OAuth connection together with your 
 | Tool | Scope | What it does | Changes data |
 | --- | --- | --- | --- |
 | `search_tickets` | `tickets:read` | Finds tickets by text, status, priority, severity, assignee, team, label, channel, contact or creation date. At most 50 per call. | No |
-| `get_ticket` | `tickets:read` | Reads a ticket with its thread as plain text, internal notes included. | No |
+| `get_ticket` | `tickets:read` | Reads a ticket with its thread as plain text, internal notes and side conversations included. | No |
 | `reply_to_ticket` | `tickets:write` | Sends a public reply (markdown). The customer receives it. Can set the status after sending. | Yes |
 | `draft_reply` | `tickets:write` | Stages a reply (markdown) on the ticket without sending it. Every teammate who opens the ticket finds it in their composer, to edit and send as their own reply. Staging again replaces it; a reply going out clears it. | Yes |
 | `add_note` | `tickets:write` | Adds an internal note the customer never sees. | Yes |
-| `update_ticket` | `tickets:write` | Changes status, priority, severity, assignee, team or labels. | Yes |
+| `update_ticket` | `tickets:write` | Changes status, priority, severity, assignee, team, labels, contact, subject, snooze, spam, custom fields or the address replies go out from. | Yes |
 | `create_ticket` | `tickets:write` | Creates a ticket for a contact email. With a mailbox, the first reply is emailed to the contact. | Yes |
+| `start_side_conversation` | `tickets:write` | Emails someone outside the team about a ticket, such as a supplier or a partner. The customer never sees it; answers come back into it. | Yes |
+| `reply_to_side_conversation` | `tickets:write` | Emails the next message of a side conversation. | Yes |
+| `update_side_conversation` | `tickets:write` | Closes a side conversation, or opens it again. | Yes |
+| `merge_tickets` | `tickets:write` | Merges a duplicate into another ticket: its messages and labels move over and it is closed. | Yes |
+| `edit_note` | `tickets:write` | Changes the text of one of your own internal notes. Offered when you connect with OAuth, not to API keys. | Yes |
+| `delete_note` | `tickets:write` | Deletes an internal note you may delete, leaving a marker an admin can restore. Offered when you connect with OAuth, not to API keys. | Yes |
+| `get_ticket_activity` | `tickets:read` | Reads what happened to a ticket besides its messages: changes, merges, snoozes, automations and who did them. | No |
+| `list_saved_replies` | `tickets:read` | Reads the team's saved replies as plain text, those offered on a ticket or matching a search. | No |
 | `search_contacts` | `contacts:read` | Finds contacts by name, email, phone or field value. | No |
 | `get_contact` | `contacts:read` | Reads a contact by id or email, with their latest tickets when the key also has `tickets:read`. | No |
+| `create_contact` | `contacts:write` | Adds a contact with an email, a name or both. | Yes |
+| `update_contact` | `contacts:write` | Changes a contact's name, email, phone, notes, labels or custom fields. | Yes |
 | `search_knowledge` | `kb:read` | Searches knowledge base articles and knowledge sources; the top matches come with their full text. | No |
 | `create_kb_draft` | `kb:write` | Creates an unpublished draft article for the team to review. | Yes |
 | `get_report` | `settings:read` and `tickets:read` | Reads the overview report for a date range. | No |
 
-Tickets are referenced by number (`#123`) or id. Assigning by email or moving to a team by name looks the teammate or team up, which needs `settings:read`; with user and team ids it does not.
+Tickets are referenced by number (`#123`) or id. Assigning by email or moving to a team by name looks the teammate or team up, which needs `settings:read`; with user and team ids it does not. Moving a ticket to a contact by email needs `contacts:read`; with the contact id it does not.
 
 Tools carry MCP annotations, so clients can tell read-only tools from ones that change data and ask you before running them. Results are compact JSON text.
 
-A suggested starting point: `tickets:read`, `contacts:read` and `kb:read` for an assistant that only reads, plus `tickets:write` when you want it to reply and update tickets.
+A suggested starting point: `tickets:read`, `contacts:read` and `kb:read` for an assistant that only reads, plus `tickets:write` when you want it to reply and update tickets, and `contacts:write` to add and update contacts.
 
 ## Limits and security
 

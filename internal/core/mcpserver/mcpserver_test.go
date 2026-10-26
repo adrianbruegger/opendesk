@@ -232,7 +232,7 @@ func TestOrigin(t *testing.T) {
 		t.Fatalf("allowed origin: %v", err)
 	}
 	defer s.Close()
-	if n := toolNames(t, s); len(n) != 2 {
+	if n := toolNames(t, s); len(n) != 4 {
 		t.Fatalf("tools: %v", n)
 	}
 }
@@ -240,7 +240,7 @@ func TestOrigin(t *testing.T) {
 func TestToolsFollowScopes(t *testing.T) {
 	e := newEnv(t)
 	got := toolNames(t, e.session(e.APIKey(e.WS, auth.ScopeTicketsRead)))
-	if !slices.Equal(got, []string{"get_ticket", "search_tickets"}) {
+	if !slices.Equal(got, []string{"get_ticket", "get_ticket_activity", "list_saved_replies", "search_tickets"}) {
 		t.Fatalf("tickets:read tools: %v", got)
 	}
 	got = toolNames(t, e.session(e.APIKey(e.WS, auth.ScopeKBRead, auth.ScopeContactsRead)))
@@ -257,15 +257,17 @@ func TestToolsFollowScopes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// edit_note and delete_note are offered to people only (TestNotesChangeOnlyAsAPerson).
 	want := []string{"search_tickets", "get_ticket", "reply_to_ticket", "draft_reply", "add_note", "update_ticket", "create_ticket",
-		"search_contacts", "get_contact", "search_knowledge", "create_kb_draft", "get_report"}
+		"start_side_conversation", "reply_to_side_conversation", "update_side_conversation", "merge_tickets", "get_ticket_activity", "list_saved_replies",
+		"search_contacts", "get_contact", "create_contact", "update_contact", "search_knowledge", "create_kb_draft", "get_report"}
 	var names []string
 	for _, tl := range res.Tools {
 		names = append(names, tl.Name)
 		if tl.Description == "" || tl.InputSchema == nil || tl.Annotations == nil {
 			t.Fatalf("%s lacks a description, schema or annotations", tl.Name)
 		}
-		read := strings.HasPrefix(tl.Name, "search_") || strings.HasPrefix(tl.Name, "get_")
+		read := strings.HasPrefix(tl.Name, "search_") || strings.HasPrefix(tl.Name, "get_") || strings.HasPrefix(tl.Name, "list_")
 		if tl.Annotations.ReadOnlyHint != read {
 			t.Fatalf("%s readOnlyHint = %v", tl.Name, tl.Annotations.ReadOnlyHint)
 		}

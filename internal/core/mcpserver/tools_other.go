@@ -34,7 +34,140 @@ func contactTools() []*tool {
 			Schema:      obj(map[string]any{"contact": str("The contact's id, or their exact email address.")}, "contact"),
 			Run:         getContact,
 		},
+		{
+			Name: "create_contact", Title: "Create a contact", Scopes: []string{auth.ScopeContactsWrite},
+			Description: "Add a customer (contact) with an email address, a name or both. An email that already belongs to a contact is refused. " +
+				"Returns the new contact.",
+			Schema: obj(contactWriteProps(false)),
+			Run:    createContact,
+		},
+		{
+			Name: "update_contact", Title: "Update a contact", Scopes: []string{auth.ScopeContactsWrite}, Destructive: true, Idempotent: true,
+			Description: "Change a contact's name, email, phone, notes, labels or custom fields. Only the fields you pass change. Returns the updated contact.",
+			Schema:      obj(contactWriteProps(true), "contact"),
+			Run:         updateContact,
+		},
 	}
+}
+
+func contactWriteProps(update bool) map[string]any {
+	props := map[string]any{
+		"email":         strN("Email address.", 3, 254),
+		"name":          strN("Full name.", 1, 200),
+		"phone":         strN("Phone number.", 1, 50),
+		"notes":         strN("Notes about the contact, for the team.", 0, 10000),
+		"add_labels":    arr("Label names to add.", strN("", 1, 50), 50),
+		"remove_labels": arr("Label names to remove.", strN("", 1, 50), 50),
+		"fields":        object("Custom field values by key, merged; null clears a field."),
+	}
+	if update {
+		props["contact"] = str("The contact: their id, or their exact email address.")
+		props["notes"] = strN("Notes about the contact, for the team. Replaces the notes; empty clears them.", 0, 10000)
+	}
+	return props
+}
+
+type contactWriteArgs struct {
+	Contact      string         `json:"contact"`
+	Email        string         `json:"email"`
+	Name         string         `json:"name"`
+	Phone        string         `json:"phone"`
+	Notes        *string        `json:"notes"`
+	AddLabels    []string       `json:"add_labels"`
+	RemoveLabels []string       `json:"remove_labels"`
+	Fields       map[string]any `json:"fields"`
+}
+
+// body turns the arguments into a contact write body for the API.
+func (a contactWriteArgs) body() (map[string]any, error) {
+	body := map[string]any{}
+	if v := strings.TrimSpace(a.Email); v != "" {
+		if !strings.Contains(v, "@") || utf8.RuneCountInString(v) > 254 {
+			return nil, invalid("email must be an email address")
+		}
+		body["email"] = v
+	}
+	if v := strings.TrimSpace(a.Name); v != "" {
+		if utf8.RuneCountInString(v) > 200 {
+			return nil, invalid("name is at most 200 characters")
+		}
+		body["name"] = v
+	}
+	if v := strings.TrimSpace(a.Phone); v != "" {
+		if utf8.RuneCountInString(v) > 50 {
+			return nil, invalid("phone is at most 50 characters")
+		}
+		body["phone"] = v
+	}
+	if a.Notes != nil {
+		if utf8.RuneCountInString(*a.Notes) > 10000 {
+			return nil, invalid("notes are at most 10,000 characters")
+		}
+		body["notes"] = strings.TrimSpace(*a.Notes)
+	}
+	add, err := cleanLabels(a.AddLabels)
+	if err != nil {
+		return nil, err
+	}
+	remove, err := cleanLabels(a.RemoveLabels)
+	if err != nil {
+		return nil, err
+	}
+	if len(add) > 0 {
+		body["add_tags"] = add
+	}
+	if len(remove) > 0 {
+		body["remove_tags"] = remove
+	}
+	if len(a.Fields) > 0 {
+		body["fields"] = a.Fields
+	}
+	return body, nil
+}
+
+func createContact(ctx context.Context, c *caller, raw json.RawMessage) (any, error) {
+	a, err := decode[contactWriteArgs](raw)
+	if err != nil {
+		return nil, err
+	}
+	if a.Contact != "" {
+		return nil, invalid("contact is for update_contact; create_contact takes email and name")
+	}
+	body, err := a.body()
+	if err != nil {
+		return nil, err
+	}
+	if body["email"] == nil && body["name"] == nil {
+		return nil, invalid("a contact needs an email or a name")
+	}
+	var ct apiContact
+	if err := c.do(ctx, http.MethodPost, "/v1/contacts", nil, body, &ct); err != nil {
+		return nil, err
+	}
+	return compactContact(ct, true), nil
+}
+
+func updateContact(ctx context.Context, c *caller, raw json.RawMessage) (any, error) {
+	a, err := decode[contactWriteArgs](raw)
+	if err != nil {
+		return nil, err
+	}
+	id, err := resolveContact(ctx, c, a.Contact)
+	if err != nil {
+		return nil, err
+	}
+	body, err := a.body()
+	if err != nil {
+		return nil, err
+	}
+	if len(body) == 0 {
+		return nil, invalid("nothing to change: pass email, name, phone, notes, add_labels, remove_labels or fields")
+	}
+	var ct apiContact
+	if err := c.do(ctx, http.MethodPatch, "/v1/contacts/"+id, nil, body, &ct); err != nil {
+		return nil, err
+	}
+	return compactContact(ct, true), nil
 }
 
 type apiContact struct {
@@ -140,27 +273,9 @@ func getContact(ctx context.Context, c *caller, raw json.RawMessage) (any, error
 	if err != nil {
 		return nil, err
 	}
-	v := strings.TrimSpace(a.Contact)
-	var id string
-	if strings.Contains(v, "@") {
-		if utf8.RuneCountInString(v) > 254 {
-			return nil, invalid("contact must be an id or an email address")
-		}
-		var pg page[apiContact]
-		if err := c.get(ctx, "/v1/contacts", url.Values{"q": {v}, "limit": {"20"}}, &pg); err != nil {
-			return nil, err
-		}
-		for _, ct := range pg.Data {
-			if ct.Email != nil && strings.EqualFold(*ct.Email, v) {
-				id = ct.ID
-				break
-			}
-		}
-		if id == "" {
-			return nil, invalid("no contact has the email " + strconv.Quote(v))
-		}
-	} else if id, err = idRef(v, "contact"); err != nil {
-		return nil, invalid("contact must be an id or an email address")
+	id, err := resolveContact(ctx, c, a.Contact)
+	if err != nil {
+		return nil, err
 	}
 	var ct apiContact
 	if err := c.get(ctx, "/v1/contacts/"+id, nil, &ct); err != nil {
@@ -180,6 +295,35 @@ func getContact(ctx context.Context, c *caller, raw json.RawMessage) (any, error
 		}
 	}
 	return out, nil
+}
+
+// resolveContact turns a contact id or exact email address into a contact id. An email
+// is looked up through the contacts list, which needs the contacts:read scope.
+func resolveContact(ctx context.Context, c *caller, raw string) (string, error) {
+	v := strings.TrimSpace(raw)
+	if !strings.Contains(v, "@") {
+		id, err := idRef(v, "contact")
+		if err != nil {
+			return "", invalid("contact must be an id or an email address")
+		}
+		return id, nil
+	}
+	if utf8.RuneCountInString(v) > 254 {
+		return "", invalid("contact must be an id or an email address")
+	}
+	var pg page[apiContact]
+	if err := c.get(ctx, "/v1/contacts", url.Values{"q": {v}, "limit": {"20"}}, &pg); err != nil {
+		if statusOf(err) == http.StatusForbidden {
+			return "", invalid("looking up a contact by email needs the contacts:read scope; pass the contact id instead")
+		}
+		return "", err
+	}
+	for _, ct := range pg.Data {
+		if ct.Email != nil && strings.EqualFold(*ct.Email, v) {
+			return ct.ID, nil
+		}
+	}
+	return "", invalid("no contact has the email " + strconv.Quote(v))
 }
 
 // --- knowledge -----------------------------------------------------------------------

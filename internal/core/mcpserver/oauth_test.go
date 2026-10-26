@@ -584,7 +584,7 @@ func TestOAuthScopesFollowRoleAndGrant(t *testing.T) {
 	// A viewer gets the read tools only, whatever the client asked for.
 	_, vt := e.connectAs(e.WS.Viewer, "")
 	got := toolNames(t, e.session(vt.AccessToken))
-	if !slices.Equal(got, []string{"get_contact", "get_report", "get_ticket", "search_contacts", "search_knowledge", "search_tickets"}) {
+	if !slices.Equal(got, []string{"get_contact", "get_report", "get_ticket", "get_ticket_activity", "list_saved_replies", "search_contacts", "search_knowledge", "search_tickets"}) {
 		t.Fatalf("viewer tools: %v", got)
 	}
 	if vt.Scope != "tickets:read contacts:read kb:read settings:read" {
@@ -594,7 +594,7 @@ func TestOAuthScopesFollowRoleAndGrant(t *testing.T) {
 	// The client asked for tickets:read only: no writes even for an admin.
 	_, at := e.connectAs(e.WS.Admin, "tickets:read openid")
 	s := e.session(at.AccessToken)
-	if got := toolNames(t, s); !slices.Equal(got, []string{"get_ticket", "search_tickets"}) {
+	if got := toolNames(t, s); !slices.Equal(got, []string{"get_ticket", "get_ticket_activity", "list_saved_replies", "search_tickets"}) {
 		t.Fatalf("tickets:read tools: %v", got)
 	}
 	if res, err := s.CallTool(e.Ctx, &mcp.CallToolParams{Name: "add_note", Arguments: map[string]any{"ticket": tk.ID.String(), "body": "x"}}); err == nil && !res.IsError {

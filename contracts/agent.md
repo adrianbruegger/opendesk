@@ -570,13 +570,21 @@ Tools (offered only when the key has the scope):
 | tool | scope | does |
 | --- | --- | --- |
 | `search_tickets` | `tickets:read` | filters (status, assignee, team, label, priority, text, dates), at most 50 |
-| `get_ticket` | `tickets:read` | a ticket with its thread (notes included), team, brand, `received_at` and the reply address |
+| `get_ticket` | `tickets:read` | a ticket with its thread (notes included, a side conversation's messages marked with `side_conversation_id`), its side conversations, team, brand, `received_at` and the reply address |
 | `reply_to_ticket` | `tickets:write` | a public reply (`body` markdown) |
 | `draft_reply` | `tickets:write` | stages the ticket's shared draft (`body` markdown) without sending; a teammate sends it from the composer (`contracts/api.md` "Drafts") |
 | `add_note` | `tickets:write` | an internal note |
-| `update_ticket` | `tickets:write` | status, priority, severity, assignee, team, labels |
+| `update_ticket` | `tickets:write` | status, priority, severity, assignee, team, labels, contact (id, or email with `contacts:read`), subject, snooze, spam, custom fields, reply address |
 | `create_ticket` | `tickets:write` | a ticket for a contact email |
+| `start_side_conversation` | `tickets:write` | a side conversation (`contracts/api.md` "Threads"): recipients, subject, first message (markdown); the customer's conversation only with `include_history` |
+| `reply_to_side_conversation` | `tickets:write` | the next message of a side conversation; reopens a closed one |
+| `update_side_conversation` | `tickets:write` | close or reopen a side conversation |
+| `merge_tickets` | `tickets:write` | merges a ticket into another (`POST /v1/tickets/{id}/merge`) |
+| `edit_note` / `delete_note` | `tickets:write`, offered to OAuth connections only | the caller's internal notes, as the API allows a person (never replies, never a side conversation's messages); delete leaves a marker |
+| `get_ticket_activity` | `tickets:read` | the ticket's activities, the latest 50 by default (at most 200) |
+| `list_saved_replies` | `tickets:read` | saved replies as plain text, those offered on a ticket or matching a query |
 | `search_contacts` / `get_contact` | `contacts:read` | |
+| `create_contact` / `update_contact` | `contacts:write` | name, email, phone, notes, labels, custom fields; `update_contact` finds the contact by id or email |
 | `search_knowledge` | `kb:read` | KB articles and knowledge sources |
 | `create_kb_draft` | `kb:write` | a draft article |
 | `get_report` | `tickets:read` + `settings:read` | the overview report for a range |

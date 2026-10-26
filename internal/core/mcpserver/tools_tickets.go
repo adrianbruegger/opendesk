@@ -52,6 +52,12 @@ func ticketTools() []*tool {
 		"team":          str(`Move to a team by id or name (a name needs the settings:read scope), or "none" to remove the team.`),
 		"add_labels":    arr("Label names to add.", strN("", 1, 50), 50),
 		"remove_labels": arr("Label names to remove.", strN("", 1, 50), 50),
+		"contact":       str("Move the ticket to another contact: their id, or their exact email address (an email needs the contacts:read scope)."),
+		"subject":       strN("New subject.", 1, 500),
+		"snooze_until":  str(`Snooze until this day (YYYY-MM-DD, the start of it) or RFC 3339 time; "none" wakes a snoozed ticket.`),
+		"spam":          boolean("true marks the ticket as spam, false takes it out of spam."),
+		"fields":        object("Custom field values by key, merged; null clears a field."),
+		"mailbox_id":    str("Send replies from this address: a mailbox id of the ticket's brand."),
 	}
 	return []*tool{
 		{
@@ -64,8 +70,9 @@ func ticketTools() []*tool {
 		{
 			Name: "get_ticket", Title: "Get a ticket", Scopes: []string{auth.ScopeTicketsRead}, ReadOnly: true, Idempotent: true,
 			Description: "Read one ticket: its fields, team, brand, the address the customer wrote to (received_at) and the one replies go out from " +
-				"(reply_from), SLA, labels and its thread as plain text, customer messages, team replies and internal notes " +
-				"(kind note) in order. Long threads keep the latest 50 messages.",
+				"(reply_from), SLA, labels, its side conversations with people outside the team, and its thread as plain text: customer messages, " +
+				"team replies and internal notes (kind note; a side conversation's messages carry its side_conversation_id) in order. " +
+				"Long threads keep the latest 50 messages.",
 			Schema: obj(map[string]any{"ticket": str(ticketArg)}, "ticket"),
 			Run:    getTicket,
 		},
@@ -103,9 +110,10 @@ func ticketTools() []*tool {
 		},
 		{
 			Name: "update_ticket", Title: "Update a ticket", Scopes: []string{auth.ScopeTicketsWrite}, Destructive: true, Idempotent: true,
-			Description: "Change a ticket's status, priority, severity, assignee, team or labels. Only the fields you pass change. Returns the updated ticket.",
-			Schema:      obj(changeProps, "ticket"),
-			Run:         updateTicket,
+			Description: "Change a ticket's status, priority, severity, assignee, team, labels, contact, subject, snooze, spam flag, custom fields or reply address. " +
+				"Only the fields you pass change. Returns the updated ticket.",
+			Schema: obj(changeProps, "ticket"),
+			Run:    updateTicket,
 		},
 		{
 			Name: "create_ticket", Title: "Create a ticket", Scopes: []string{auth.ScopeTicketsWrite}, OpenWorld: true,
@@ -334,6 +342,8 @@ type apiMessage struct {
 	// A deleted message, or a note sent as a reply: a marker the model never reads.
 	DeletedAt     *time.Time `json:"deleted_at"`
 	SentAsReplyID *string    `json:"sent_as_reply_id"`
+	// ThreadID: a note of a side conversation with someone outside the team.
+	ThreadID *string `json:"thread_id"`
 }
 
 type outMessage struct {
@@ -348,6 +358,8 @@ type outMessage struct {
 	Attachments []string  `json:"attachments,omitempty"`
 	Delivery    string    `json:"delivery_status,omitempty"`
 	Truncated   bool      `json:"truncated,omitempty"`
+	// SideConversationID marks a message of a side conversation (side_conversations).
+	SideConversationID string `json:"side_conversation_id,omitempty"`
 }
 
 type outAuthor struct {
@@ -358,10 +370,11 @@ type outAuthor struct {
 }
 
 type threadOut struct {
-	Ticket          outTicket    `json:"ticket"`
-	Messages        []outMessage `json:"messages"`
-	EarlierOmitted  int          `json:"earlier_messages_omitted,omitempty"`
-	TextBudgetSpent bool         `json:"text_truncated,omitempty"`
+	Ticket            outTicket             `json:"ticket"`
+	SideConversations []outSideConversation `json:"side_conversations,omitempty"`
+	Messages          []outMessage          `json:"messages"`
+	EarlierOmitted    int                   `json:"earlier_messages_omitted,omitempty"`
+	TextBudgetSpent   bool                  `json:"text_truncated,omitempty"`
 }
 
 func getTicket(ctx context.Context, c *caller, raw json.RawMessage) (any, error) {
@@ -388,6 +401,9 @@ func getTicket(ctx context.Context, c *caller, raw json.RawMessage) (any, error)
 	out := threadOut{Ticket: compactTicket(t, true), Messages: []outMessage{}}
 	c.name(ctx, &out.Ticket)
 	c.replyAddress(ctx, &out.Ticket)
+	if out.SideConversations, err = sideConversations(ctx, c, t.ID); err != nil {
+		return nil, err
+	}
 	// Deleted messages and notes sent as replies stay out, whoever asks (admins read
 	// them in the app, never through a model).
 	list := slices.DeleteFunc(msgs.Data, func(m apiMessage) bool { return m.DeletedAt != nil || m.SentAsReplyID != nil })
@@ -401,6 +417,9 @@ func getTicket(ctx context.Context, c *caller, raw json.RawMessage) (any, error)
 	for i := len(list) - 1; i >= 0; i-- {
 		m := list[i]
 		om := outMessage{ID: m.ID, Kind: m.Kind, Direction: m.Direction, At: m.CreatedAt, Author: authorOf(m)}
+		if m.ThreadID != nil {
+			om.SideConversationID = *m.ThreadID
+		}
 		if m.Kind == "reply" && m.Direction == "outbound" {
 			om.To, om.Cc = m.To, m.Cc
 			if m.DeliveryStatus != "none" {
@@ -600,14 +619,20 @@ func cleanLabels(in []string) ([]string, error) {
 
 func updateTicket(ctx context.Context, c *caller, raw json.RawMessage) (any, error) {
 	a, err := decode[struct {
-		Ticket       string   `json:"ticket"`
-		Status       string   `json:"status"`
-		Priority     string   `json:"priority"`
-		Severity     string   `json:"severity"`
-		Assignee     string   `json:"assignee"`
-		Team         string   `json:"team"`
-		AddLabels    []string `json:"add_labels"`
-		RemoveLabels []string `json:"remove_labels"`
+		Ticket       string         `json:"ticket"`
+		Status       string         `json:"status"`
+		Priority     string         `json:"priority"`
+		Severity     string         `json:"severity"`
+		Assignee     string         `json:"assignee"`
+		Team         string         `json:"team"`
+		AddLabels    []string       `json:"add_labels"`
+		RemoveLabels []string       `json:"remove_labels"`
+		Contact      string         `json:"contact"`
+		Subject      *string        `json:"subject"`
+		SnoozeUntil  string         `json:"snooze_until"`
+		Spam         *bool          `json:"spam"`
+		Fields       map[string]any `json:"fields"`
+		MailboxID    string         `json:"mailbox_id"`
 	}](raw)
 	if err != nil {
 		return nil, err
@@ -667,8 +692,46 @@ func updateTicket(ctx context.Context, c *caller, raw json.RawMessage) (any, err
 	if len(remove) > 0 {
 		body["remove_tags"] = remove
 	}
+	if strings.TrimSpace(a.Contact) != "" {
+		id, err := resolveContact(ctx, c, a.Contact)
+		if err != nil {
+			return nil, err
+		}
+		body["contact_id"] = id
+	}
+	if a.Subject != nil {
+		subject := strings.Join(strings.Fields(*a.Subject), " ")
+		if subject == "" || utf8.RuneCountInString(subject) > 500 {
+			return nil, invalid("subject must be 1 to 500 characters")
+		}
+		body["subject"] = subject
+	}
+	switch v := strings.TrimSpace(a.SnoozeUntil); strings.ToLower(v) {
+	case "":
+	case "none", "null", "wake":
+		body["snoozed_until"] = nil
+	default:
+		at, err := day(v, "snooze_until", false)
+		if err != nil {
+			return nil, err
+		}
+		body["snoozed_until"] = at.UTC().Format(time.RFC3339)
+	}
+	if a.Spam != nil {
+		body["spam"] = *a.Spam
+	}
+	if len(a.Fields) > 0 {
+		body["fields"] = a.Fields
+	}
+	if a.MailboxID != "" {
+		id, err := idRef(a.MailboxID, "mailbox_id")
+		if err != nil {
+			return nil, err
+		}
+		body["mailbox_id"] = id
+	}
 	if len(body) == 0 {
-		return nil, invalid("nothing to change: pass status, priority, severity, assignee, team, add_labels or remove_labels")
+		return nil, invalid("nothing to change: pass status, priority, severity, assignee, team, add_labels, remove_labels, contact, subject, snooze_until, spam, fields or mailbox_id")
 	}
 	var t apiTicket
 	if err := c.do(ctx, http.MethodPatch, "/v1/tickets/"+ref, nil, body, &t); err != nil {
