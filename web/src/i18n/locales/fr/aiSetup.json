@@ -104,6 +104,7 @@
     "toolsHint": "Un client ne voit un outil que si ses accès incluent les portées de cet outil.",
     "readOnly": "Lecture",
     "changes": "Modifie les données",
+    "peopleOnly": "Uniquement pour les clients connectés avec une connexion, pas avec une clé d’API.",
     "connections": "Clients connectés",
     "connectionsHint": "Clients connectés avec authentification. Ils agissent au nom de la personne qui les a connectés.",
     "connectionsHintAdmin": "Clients connectés avec authentification, pour tous les membres. Ils agissent au nom de la personne qui les a connectés.",

@@ -72,8 +72,11 @@ func TestUpdateTicketMoreFields(t *testing.T) {
 	if res := call(t, s, "update_ticket", map[string]any{"ticket": tk.ID.String(), "contact": "nobody@nowhere.test"}, nil); !res.IsError {
 		t.Fatal("unknown contact accepted")
 	}
-	if res := call(t, s, "update_ticket", map[string]any{"ticket": tk.ID.String(), "snooze_until": "tomorrow"}, nil); !res.IsError {
-		t.Fatal("bad snooze time accepted")
+	// A snooze needs a time with its offset: a bare day has no time zone to wake in.
+	for _, bad := range []string{"tomorrow", "2030-01-02"} {
+		if res := call(t, s, "update_ticket", map[string]any{"ticket": tk.ID.String(), "snooze_until": bad}, nil); !res.IsError {
+			t.Fatalf("snooze_until %q accepted", bad)
+		}
 	}
 
 	// update_contact finds the contact by email and changes only what it is given.
@@ -86,6 +89,17 @@ func TestUpdateTicketMoreFields(t *testing.T) {
 	call(t, s, "update_contact", map[string]any{"contact": "billing@customer.test", "phone": "+41 44 000 00 00", "add_labels": []string{"vip"}}, &changed)
 	if changed.Name != "Billing Team" || changed.Phone != "+41 44 000 00 00" || changed.Notes != "Pays by invoice" || !slices.Contains(changed.Labels, "vip") {
 		t.Fatalf("update_contact: %+v", changed)
+	}
+	// An empty phone clears it; an empty name is refused.
+	call(t, s, "update_contact", map[string]any{"contact": contact.ID, "phone": ""}, &struct{}{})
+	var phone, name string
+	e.Scalar(`SELECT phone FROM contacts WHERE id = $1`, &phone, contact.ID)
+	e.Scalar(`SELECT name FROM contacts WHERE id = $1`, &name, contact.ID)
+	if phone != "" || name != "Billing Team" {
+		t.Fatalf("phone not cleared: %q %q", phone, name)
+	}
+	if res := call(t, s, "update_contact", map[string]any{"contact": contact.ID, "name": " "}, nil); !res.IsError {
+		t.Fatal("empty name accepted")
 	}
 
 	// Without contacts:read the email lookup is explained; the id still works.
@@ -288,8 +302,26 @@ func TestNotesChangeOnlyAsAPerson(t *testing.T) {
 	if !deleted {
 		t.Fatal("note not deleted")
 	}
-	// A deleted note is gone from get_ticket and cannot be deleted twice.
-	if res := call(t, s, "delete_note", map[string]any{"ticket": tk.ID.String(), "message_id": note.MessageID}, nil); !res.IsError {
-		t.Fatal("deleted twice")
+	// Deleting it again succeeds without a change, as a retry would.
+	var again struct {
+		Deleted bool `json:"deleted"`
+	}
+	call(t, s, "delete_note", map[string]any{"ticket": tk.ID.String(), "message_id": note.MessageID}, &again)
+	if !again.Deleted {
+		t.Fatalf("second delete: %+v", again)
+	}
+	var noteDeletes int
+	e.Scalar(`SELECT count(*) FROM activities WHERE ticket_id = $1 AND type = 'note_deleted'`, &noteDeletes, tk.ID)
+	if noteDeletes != 1 {
+		t.Fatalf("%d note_deleted activities", noteDeletes)
+	}
+
+	// Settings > AI clients says which tools need a sign-in.
+	var server AIClientServer
+	e.Do("GET", "/v1/ai-clients/server", e.WS.Agent.As(e.WS), nil).Want(t, 200).JSON(t, &server)
+	for _, tl := range server.Tools {
+		if want := tl.Name == "edit_note" || tl.Name == "delete_note"; tl.PeopleOnly != want {
+			t.Fatalf("%s people_only = %v", tl.Name, tl.PeopleOnly)
+		}
 	}
 }

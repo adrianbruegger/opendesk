@@ -648,7 +648,7 @@ export type OAuthRequest = {
   expires_at: string;
 };
 export type OAuthDecision = { redirect_to: string };
-export type AIClientTool = { name: string; title: string; description: string; scopes: string[]; read_only: boolean; destructive: boolean };
+export type AIClientTool = { name: string; title: string; description: string; scopes: string[]; read_only: boolean; destructive: boolean; people_only: boolean };
 export type AIClientServer = { url: string; resource_metadata: string; authorization_server: string; scopes: string[]; tools: AIClientTool[] };
 export type AIClientConnection = {
   id: string;

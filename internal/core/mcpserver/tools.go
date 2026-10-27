@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -158,6 +159,21 @@ func day(s, field string, endOfDay bool) (*time.Time, error) {
 		return &t, nil
 	}
 	return nil, invalid(field + " must be YYYY-MM-DD or an RFC 3339 time")
+}
+
+// searchText is a search query cut to the API's 200 characters, without clip's marker,
+// which a query would then have to match.
+func searchText(s string) string {
+	r := []rune(strings.TrimSpace(s))
+	if len(r) > 200 {
+		r = r[:200]
+	}
+	return strings.TrimSpace(string(r))
+}
+
+// emailAddress is the loose check every tool applies before the API's own.
+func emailAddress(s string) bool {
+	return strings.Contains(s, "@") && utf8.RuneCountInString(s) <= 254
 }
 
 func clip(s string, n int) string {

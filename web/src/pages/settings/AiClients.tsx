@@ -353,7 +353,10 @@ function ToolList({ tools }: { tools: AIClientTool[] }) {
                 {tl.read_only ? t("clients.readOnly") : t("clients.changes")}
               </span>
             </div>
-            <p className="min-w-0 flex-1 text-[12px] leading-[18px] text-fg-3">{firstSentence(tl.description)}</p>
+            <p className="min-w-0 flex-1 text-[12px] leading-[18px] text-fg-3">
+              {firstSentence(tl.description)}
+              {tl.people_only && <span className="text-fg-4"> {t("clients.peopleOnly")}</span>}
+            </p>
             <div className="flex shrink-0 flex-wrap gap-1">
               {tl.scopes.map((s) => (
                 <MonoChip key={s}>{s}</MonoChip>

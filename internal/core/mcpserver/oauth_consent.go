@@ -63,6 +63,7 @@ type AIClientTool struct {
 	Scopes      []string `json:"scopes" doc:"All are needed for the tool to be offered"`
 	ReadOnly    bool     `json:"read_only"`
 	Destructive bool     `json:"destructive"`
+	PeopleOnly  bool     `json:"people_only" doc:"Offered only to clients connected with a sign-in (OAuth), never to API keys"`
 }
 
 // AIClientServer describes the MCP server for Settings > AI clients.
@@ -295,7 +296,7 @@ func (o *oauth) registerAPI(api huma.API) {
 				Scopes: oauthgrant.Scopes, Tools: []AIClientTool{}}
 			for _, t := range catalog() {
 				out.Tools = append(out.Tools, AIClientTool{Name: t.Name, Title: t.Title, Description: t.Description, Scopes: t.Scopes,
-					ReadOnly: t.ReadOnly, Destructive: t.Destructive})
+					ReadOnly: t.ReadOnly, Destructive: t.Destructive, PeopleOnly: t.Person})
 			}
 			return &struct{ Body AIClientServer }{out}, nil
 		})

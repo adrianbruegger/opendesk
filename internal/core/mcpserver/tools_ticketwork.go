@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -177,7 +178,7 @@ func addresses(in []string, field string) ([]string, error) {
 		if a == "" {
 			continue
 		}
-		if !strings.Contains(a, "@") || utf8.RuneCountInString(a) > 254 {
+		if !emailAddress(a) {
 			return nil, invalid(field + " must be email addresses")
 		}
 		out = append(out, a)
@@ -363,40 +364,17 @@ func mergeTickets(ctx context.Context, c *caller, raw json.RawMessage) (any, err
 
 // --- notes ---------------------------------------------------------------------------
 
-// noteOf finds an internal note of the ticket the tools may change: not deleted, not a
-// side conversation's emailed message, not a reply.
-func noteOf(ctx context.Context, c *caller, ref, messageID string) (string, string, error) {
+// noteRef validates a ticket and message reference for the note tools.
+func noteRef(ticket, messageID string) (string, string, error) {
+	ref, err := ticketRef(ticket)
+	if err != nil {
+		return "", "", err
+	}
 	mid, err := idRef(messageID, "message_id")
 	if err != nil {
 		return "", "", err
 	}
-	var t apiTicket
-	if err := c.get(ctx, "/v1/tickets/"+ref, nil, &t); err != nil {
-		return "", "", err
-	}
-	var msgs struct {
-		Data []apiMessage `json:"data"`
-	}
-	if err := c.get(ctx, "/v1/tickets/"+t.ID+"/messages", nil, &msgs); err != nil {
-		return "", "", err
-	}
-	for _, m := range msgs.Data {
-		if m.ID != mid {
-			continue
-		}
-		switch {
-		case m.DeletedAt != nil:
-			return "", "", invalid("that note is already deleted")
-		case m.Kind != "note":
-			return "", "", invalid("message_id is not an internal note; replies cannot be changed here")
-		case m.ThreadID != nil:
-			return "", "", invalid("message_id is a side conversation's message, which was emailed and cannot be changed")
-		case m.SentAsReplyID != nil:
-			return "", "", invalid("that note was sent as a reply and cannot be changed")
-		}
-		return t.ID, mid, nil
-	}
-	return "", "", invalid("message_id is not a message of this ticket")
+	return ref, mid, nil
 }
 
 func editNote(ctx context.Context, c *caller, raw json.RawMessage) (any, error) {
@@ -408,7 +386,7 @@ func editNote(ctx context.Context, c *caller, raw json.RawMessage) (any, error) 
 	if err != nil {
 		return nil, err
 	}
-	ref, err := ticketRef(a.Ticket)
+	ref, mid, err := noteRef(a.Ticket, a.MessageID)
 	if err != nil {
 		return nil, err
 	}
@@ -416,19 +394,20 @@ func editNote(ctx context.Context, c *caller, raw json.RawMessage) (any, error) 
 	if err != nil {
 		return nil, err
 	}
-	tid, mid, err := noteOf(ctx, c, ref, a.MessageID)
-	if err != nil {
-		return nil, err
+	// The API edits internal notes only, the caller's own, never a side conversation's.
+	var m struct {
+		ID       string `json:"id"`
+		TicketID string `json:"ticket_id"`
+		BodyText string `json:"body_text"`
 	}
-	var m apiMessage
-	if err := c.do(ctx, http.MethodPatch, "/v1/tickets/"+tid+"/messages/"+mid, nil, map[string]any{"body_html": html}, &m); err != nil {
+	if err := c.do(ctx, http.MethodPatch, "/v1/tickets/"+ref+"/messages/"+mid, nil, map[string]any{"body_html": html}, &m); err != nil {
 		return nil, err
 	}
 	return struct {
 		MessageID string `json:"message_id"`
 		TicketID  string `json:"ticket_id"`
 		Text      string `json:"text"`
-	}{MessageID: m.ID, TicketID: tid, Text: clip(m.BodyText, messageChars)}, nil
+	}{MessageID: m.ID, TicketID: m.TicketID, Text: clip(m.BodyText, messageChars)}, nil
 }
 
 func deleteNote(ctx context.Context, c *caller, raw json.RawMessage) (any, error) {
@@ -439,28 +418,50 @@ func deleteNote(ctx context.Context, c *caller, raw json.RawMessage) (any, error
 	if err != nil {
 		return nil, err
 	}
-	ref, err := ticketRef(a.Ticket)
+	ref, mid, err := noteRef(a.Ticket, a.MessageID)
 	if err != nil {
 		return nil, err
 	}
-	tid, mid, err := noteOf(ctx, c, ref, a.MessageID)
-	if err != nil {
+	// The API deletes replies too, where the workspace allows it; this tool deletes notes
+	// only, so it looks the message up first.
+	var t apiTicket
+	if err := c.get(ctx, "/v1/tickets/"+ref, nil, &t); err != nil {
 		return nil, err
 	}
-	if err := c.do(ctx, http.MethodDelete, "/v1/tickets/"+tid+"/messages/"+mid, nil, nil, nil); err != nil {
+	var msgs struct {
+		Data []apiMessage `json:"data"`
+	}
+	if err := c.get(ctx, "/v1/tickets/"+t.ID+"/messages", nil, &msgs); err != nil {
 		return nil, err
+	}
+	i := slices.IndexFunc(msgs.Data, func(m apiMessage) bool { return m.ID == mid })
+	if i < 0 {
+		return nil, invalid("message_id is not a message of this ticket")
+	}
+	if m := msgs.Data[i]; m.DeletedAt == nil {
+		if m.Kind != "note" {
+			return nil, invalid("message_id is not an internal note; delete_note deletes notes only")
+		}
+		// Deleting an already deleted note succeeds, as the API's delete does.
+		if err := c.do(ctx, http.MethodDelete, "/v1/tickets/"+t.ID+"/messages/"+mid, nil, nil, nil); err != nil {
+			return nil, err
+		}
 	}
 	return struct {
 		MessageID string `json:"message_id"`
 		TicketID  string `json:"ticket_id"`
 		Deleted   bool   `json:"deleted"`
 		Note      string `json:"note"`
-	}{MessageID: mid, TicketID: tid, Deleted: true, Note: "a marker stays in the conversation; an admin can restore the note in the app"}, nil
+	}{MessageID: mid, TicketID: t.ID, Deleted: true, Note: "a marker stays in the conversation; an admin can restore the note in the app"}, nil
 }
 
 // --- activity ------------------------------------------------------------------------
 
-const maxActivities = 200
+const (
+	maxActivities = 200
+	// activityChars bounds each detail of an activity.
+	activityChars = 300
+)
 
 type apiActivity struct {
 	Type  string `json:"type"`
@@ -513,13 +514,35 @@ func getTicketActivity(ctx context.Context, c *caller, raw json.RawMessage) (any
 		acts = acts[len(acts)-limit:]
 	}
 	for _, x := range acts {
-		o := outActivity{Type: x.Type, By: x.Actor.Type, At: x.CreatedAt, Data: x.Data}
+		o := outActivity{Type: x.Type, By: x.Actor.Type, At: x.CreatedAt, Data: activityData(x.Data)}
 		if x.Actor.User != nil {
 			o.Name = x.Actor.User.Name
 		}
 		out.Activities = append(out.Activities, o)
 	}
 	return out, nil
+}
+
+// activityData keeps an activity's details small: short text and plain values as they
+// are, long text clipped, and nested lists and objects only when they are small.
+func activityData(d map[string]any) map[string]any {
+	if len(d) == 0 {
+		return nil
+	}
+	out := make(map[string]any, len(d))
+	for k, v := range d {
+		switch x := v.(type) {
+		case string:
+			out[k] = clip(x, activityChars)
+		case nil, bool, float64, int, int64:
+			out[k] = x
+		default:
+			if b, err := json.Marshal(x); err == nil && len(b) <= activityChars {
+				out[k] = x
+			}
+		}
+	}
+	return out
 }
 
 // --- saved replies -------------------------------------------------------------------
@@ -539,7 +562,7 @@ func listSavedReplies(ctx context.Context, c *caller, raw json.RawMessage) (any,
 	}
 	q := url.Values{"limit": {strconv.Itoa(min(limit, 50))}}
 	if s := strings.TrimSpace(a.Query); s != "" {
-		q.Set("q", clip(s, 200))
+		q.Set("q", searchText(s))
 	}
 	if strings.TrimSpace(a.Ticket) != "" {
 		ref, err := ticketRef(a.Ticket)

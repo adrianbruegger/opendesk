@@ -72,6 +72,7 @@
     "toolsHint": "A client sees a tool only when its access includes the tool's scopes.",
     "readOnly": "Read",
     "changes": "Changes data",
+    "peopleOnly": "Only for clients connected with a sign-in, not API keys.",
     "connections": "Connected clients",
     "connectionsHint": "Clients connected with sign-in. They act as the person who connected them.",
     "connectionsHintAdmin": "Clients connected with sign-in, for every member. They act as the person who connected them.",

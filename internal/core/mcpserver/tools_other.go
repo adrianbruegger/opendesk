@@ -62,6 +62,8 @@ func contactWriteProps(update bool) map[string]any {
 	}
 	if update {
 		props["contact"] = str("The contact: their id, or their exact email address.")
+		props["email"] = strN("New email address, or empty to clear it.", 0, 254)
+		props["phone"] = strN("New phone number, or empty to clear it.", 0, 50)
 		props["notes"] = strN("Notes about the contact, for the team. Replaces the notes; empty clears them.", 0, 10000)
 	}
 	return props
@@ -69,9 +71,9 @@ func contactWriteProps(update bool) map[string]any {
 
 type contactWriteArgs struct {
 	Contact      string         `json:"contact"`
-	Email        string         `json:"email"`
-	Name         string         `json:"name"`
-	Phone        string         `json:"phone"`
+	Email        *string        `json:"email"`
+	Name         *string        `json:"name"`
+	Phone        *string        `json:"phone"`
 	Notes        *string        `json:"notes"`
 	AddLabels    []string       `json:"add_labels"`
 	RemoveLabels []string       `json:"remove_labels"`
@@ -81,19 +83,26 @@ type contactWriteArgs struct {
 // body turns the arguments into a contact write body for the API.
 func (a contactWriteArgs) body() (map[string]any, error) {
 	body := map[string]any{}
-	if v := strings.TrimSpace(a.Email); v != "" {
-		if !strings.Contains(v, "@") || utf8.RuneCountInString(v) > 254 {
-			return nil, invalid("email must be an email address")
+	// An empty email or phone clears it; a name can be changed, not emptied.
+	if a.Email != nil {
+		switch v := strings.TrimSpace(*a.Email); {
+		case v == "":
+			body["email"] = nil
+		case !emailAddress(v):
+			return nil, invalid("email must be an email address, or empty to clear it")
+		default:
+			body["email"] = v
 		}
-		body["email"] = v
 	}
-	if v := strings.TrimSpace(a.Name); v != "" {
-		if utf8.RuneCountInString(v) > 200 {
-			return nil, invalid("name is at most 200 characters")
+	if a.Name != nil {
+		v := strings.TrimSpace(*a.Name)
+		if v == "" || utf8.RuneCountInString(v) > 200 {
+			return nil, invalid("name must be 1 to 200 characters")
 		}
 		body["name"] = v
 	}
-	if v := strings.TrimSpace(a.Phone); v != "" {
+	if a.Phone != nil {
+		v := strings.TrimSpace(*a.Phone)
 		if utf8.RuneCountInString(v) > 50 {
 			return nil, invalid("phone is at most 50 characters")
 		}
@@ -139,6 +148,13 @@ func createContact(ctx context.Context, c *caller, raw json.RawMessage) (any, er
 	}
 	if body["email"] == nil && body["name"] == nil {
 		return nil, invalid("a contact needs an email or a name")
+	}
+	// Nothing to clear on a new contact.
+	if v, ok := body["email"]; ok && v == nil {
+		delete(body, "email")
+	}
+	if body["phone"] == "" {
+		delete(body, "phone")
 	}
 	var ct apiContact
 	if err := c.do(ctx, http.MethodPost, "/v1/contacts", nil, body, &ct); err != nil {
@@ -248,7 +264,7 @@ func searchContacts(ctx context.Context, c *caller, raw json.RawMessage) (any, e
 	limit = min(limit, 50)
 	q := url.Values{"limit": {strconv.Itoa(limit)}}
 	if s := strings.TrimSpace(a.Query); s != "" {
-		q.Set("q", clip(s, 200))
+		q.Set("q", searchText(s))
 	}
 	var pg page[apiContact]
 	if err := c.get(ctx, "/v1/contacts", q, &pg); err != nil {

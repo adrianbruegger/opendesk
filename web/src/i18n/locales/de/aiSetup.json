@@ -104,6 +104,7 @@
     "toolsHint": "Ein Client sieht ein Tool nur, wenn sein Zugriff die Berechtigungen des Tools umfasst.",
     "readOnly": "Lesen",
     "changes": "Ändert Daten",
+    "peopleOnly": "Nur für Clients, die mit einer Anmeldung verbunden sind, nicht mit API-Schlüsseln.",
     "connections": "Verbundene Clients",
     "connectionsHint": "Per Anmeldung verbundene Clients. Sie handeln als die Person, die sie verbunden hat.",
     "connectionsHintAdmin": "Per Anmeldung verbundene Clients aller Mitglieder. Sie handeln als die Person, die sie verbunden hat.",

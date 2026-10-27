@@ -54,7 +54,7 @@ func ticketTools() []*tool {
 		"remove_labels": arr("Label names to remove.", strN("", 1, 50), 50),
 		"contact":       str("Move the ticket to another contact: their id, or their exact email address (an email needs the contacts:read scope)."),
 		"subject":       strN("New subject.", 1, 500),
-		"snooze_until":  str(`Snooze until this day (YYYY-MM-DD, the start of it) or RFC 3339 time; "none" wakes a snoozed ticket.`),
+		"snooze_until":  str(`Snooze until this RFC 3339 time, with the offset of the workspace's time zone (like 2026-11-02T08:00:00+01:00); "none" wakes a snoozed ticket.`),
 		"spam":          boolean("true marks the ticket as spam, false takes it out of spam."),
 		"fields":        object("Custom field values by key, merged; null clears a field."),
 		"mailbox_id":    str("Send replies from this address: a mailbox id of the ticket's brand."),
@@ -197,7 +197,7 @@ func searchTickets(ctx context.Context, c *caller, raw json.RawMessage) (any, er
 	}
 	q := url.Values{}
 	if s := strings.TrimSpace(f.Query); s != "" {
-		q.Set("q", clip(s, 200))
+		q.Set("q", searchText(s))
 	}
 	if len(f.Status) > 0 {
 		q.Set("status", strings.Join(f.Status, ","))
@@ -401,9 +401,8 @@ func getTicket(ctx context.Context, c *caller, raw json.RawMessage) (any, error)
 	out := threadOut{Ticket: compactTicket(t, true), Messages: []outMessage{}}
 	c.name(ctx, &out.Ticket)
 	c.replyAddress(ctx, &out.Ticket)
-	if out.SideConversations, err = sideConversations(ctx, c, t.ID); err != nil {
-		return nil, err
-	}
+	// Side conversations add to the ticket; the ticket and its thread come without them.
+	out.SideConversations, _ = sideConversations(ctx, c, t.ID)
 	// Deleted messages and notes sent as replies stay out, whoever asks (admins read
 	// them in the app, never through a model).
 	list := slices.DeleteFunc(msgs.Data, func(m apiMessage) bool { return m.DeletedAt != nil || m.SentAsReplyID != nil })
@@ -711,9 +710,10 @@ func updateTicket(ctx context.Context, c *caller, raw json.RawMessage) (any, err
 	case "none", "null", "wake":
 		body["snoozed_until"] = nil
 	default:
-		at, err := day(v, "snooze_until", false)
+		// A bare day has no time zone to wake in: the time and its offset are required.
+		at, err := time.Parse(time.RFC3339, v)
 		if err != nil {
-			return nil, err
+			return nil, invalid(`snooze_until must be an RFC 3339 time with an offset, like 2026-11-02T08:00:00+01:00, or "none"`)
 		}
 		body["snoozed_until"] = at.UTC().Format(time.RFC3339)
 	}
@@ -761,7 +761,7 @@ func createTicket(ctx context.Context, c *caller, raw json.RawMessage) (any, err
 		return nil, err
 	}
 	email := strings.TrimSpace(a.Email)
-	if email == "" || !strings.Contains(email, "@") || len(email) > 254 {
+	if !emailAddress(email) {
 		return nil, invalid("email must be an email address")
 	}
 	subject := strings.TrimSpace(a.Subject)

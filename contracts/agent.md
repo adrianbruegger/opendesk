@@ -657,7 +657,8 @@ token, secret or verifier.
 ### Settings > AI clients
 
 `GET /v1/ai-clients/server` (members) describes the server for setup screens: `url`,
-`resource_metadata`, `authorization_server`, `scopes` and every tool with its scopes.
+`resource_metadata`, `authorization_server`, `scopes` and every tool with its scopes (`people_only`: offered
+to OAuth connections, never to API keys).
 `GET /v1/ai-clients/connections` lists connected clients (your own; admins see every member's):
 client name, redirect host, user, scopes, created and last used. `DELETE
 /v1/ai-clients/connections/{id}` disconnects one. Clients that send a header instead of OAuth
